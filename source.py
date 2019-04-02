@@ -5,13 +5,13 @@ class LaplSource():
 		outer_bound,
 		top_bound,
 		bottom_bound,
-		type,
+		wtype,
 		size,
-		xc,
-		yc,
+		xcd,
+		ycd,
 		u,
 		params={},
-		zc=0):
+		zcd=0):
 		self.q = None
 		self.outer_bound = outer_bound
 		self.top_bound = top_bound
