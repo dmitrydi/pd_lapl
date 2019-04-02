@@ -1,4 +1,4 @@
-class Source():
+class LaplSource():
 # class for a finite element (finite liquid source) of a well or fracture
 # all in laplace space
 	def __init__(self,
@@ -17,7 +17,7 @@ class Source():
 		self.top_bound = top_bound
 		pass
 
-	def G(x,y,z):
+	def Green(self, x, y, z):
 		# Green's function of the source (response in coordinate point (x,y,z)), depends on type and boundaries
 		pass
 
