@@ -6,23 +6,22 @@ class LaplSource():
 		top_bound,
 		bottom_bound,
 		wtype,
-		size,
-		xcd,
-		ycd,
-		u,
-		params={},
-		zcd=0):
+		x_size,
+		params={}):
 		self.q = None
 		self.outer_bound = outer_bound
 		self.top_bound = top_bound
+		self.bottom_bound = bottom_bound
+		self.wtype = wtype
+		self.x_size = x_size # dimentionless length of a segment
+		self.params = params
+
+	def Green(self, u, xd, yd, zd, xcd, ycd, zcd):
+		# Green's function of the source (response in coordinate point (xd, yd, zd)), depends on type and boundaries
 		pass
 
-	def Green(self, x, y, z):
-		# Green's function of the source (response in coordinate point (x,y,z)), depends on type and boundaries
-		pass
-
-	def pd(x,y,z=0):
-		# pressure response in space point (x,y,z)
+	def pd(u, xd, yd, zd, xcd, ycd, zcd):
+		# pressure response in space point (xd, yd, zd)
 		# works only if source strength is calculated
 		if self.q is None:
 			raise ValueError("Source strength q in unindentified")
