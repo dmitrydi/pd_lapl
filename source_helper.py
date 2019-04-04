@@ -13,5 +13,5 @@ def frac_inf_imp_imp(xd, yd, xwd, ywd, su, c, int_lim1, int_lim2):
 		return quad(integrand_frac_inf_imp_imp, int_lim1, int_lim2, args = (xd, xwd, yd, ywd, c, su))[0]
 
 def integrand_frac_inf_imp_imp(x, xd, xwd, yd, ywd, c, su):
-	return k0(su*((xd-xwd-c*x)**0.5+(yd-ywd)**0.5)**0.5)
+	return k0(su*((xd-xwd-c*x)**2+(yd-ywd)**2)**0.5)
 
