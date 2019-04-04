@@ -1,3 +1,7 @@
+from mpmath import invertlaplace
+from lapl_well import LaplWell
+from source_helper import nlinvsteh
+
 class Well():
 	# class for describing a well
 	# in real space
@@ -6,17 +10,32 @@ class Well():
 		top_bound,
 		bottom_bound,
 		wtype,
-		zw=0, params = {"z_ref_length":1}):
-		self.L = params["ref_length"]
-		self.zL = params["z_ref_length"]
-		self.xwd = xw/self.L
-		self.ywd = yw/self.L
-		self.zwd = zw/self.zL
-		self.lapl_well = LaplWell(xwd, ywd, zwd, outer_bound, top_bound, bottom_bound, wtype, params)
+		params, 
+		zw = 0):
+		self.params = params
+		self.xwd = xw/self.params["ref_length"]
+		self.ywd = yw/self.params["ref_length"]
+		self.zwd = zw/self.params["z_ref_length"]
+		self.outer_bound = outer_bound
+		self.top_bound = top_bound
+		self.bottom_bound = bottom_bound
+		self.wtype = wtype
+		self.lapl_well = LaplWell(
+			self.xwd,
+			self.ywd,
+			self.zwd,
+			self.outer_bound,
+			self.top_bound,
+			self.bottom_bound,
+			self.wtype,
+			self.params)
 
-	def get_p(self, t, Q, x, y, z=0):
-		# returns pressure response in space point (x,y,z) and time point t given well rate is Q
-		pass
+	def fp(self, p):
+		self.lapl_well.recalc(p)
+		return self.lapl_well.p_lapl
+
+	def get_pw(self, t):
+		return nlinvsteh(self.fp, t, n = 8)
 
 	def get_q(self, t, Pwf):
 		# returns well rate Q at time t given the bottomhole pressure is Pwf
