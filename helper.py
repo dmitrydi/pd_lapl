@@ -50,7 +50,7 @@ class Helper():
 		Fcd = well.params["Fcd"]
 		coef = np.pi * dx/Fcd/s
 		b = np.zeros((1+2*N))
-		b[-1] = 1/s/dx
+		b[-1] = 0.5/s/dx
 		for i in range(N):
 			b[N+i] = coef*(i+1)
 			b[N-i-1] = coef*(i+1)

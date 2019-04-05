@@ -1,5 +1,6 @@
 from source import LaplSource
 from helper import Helper
+from old_helper import OldHelper
 import numpy as np
 
 class LaplWell():
@@ -27,8 +28,11 @@ class LaplWell():
 		self.q_lapl = None
 		self.Q_lapl = None
 
-	def recalc(self, s):
-		helper = Helper()
+	def recalc(self, s, mode="old"):
+		if mode == "old":
+			helper = OldHelper()
+		else:
+			helper = Helper()
 		dummy_matrix = helper.get_dummy_matrix(self)
 		green_matrix = helper.get_green_matrix(self, s)
 		source_matrix = helper.get_source_matrix(self, s)
