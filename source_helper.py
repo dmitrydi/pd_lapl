@@ -49,3 +49,17 @@ def nlinvsteh(F, t, n):
         b = F(i * lton2)
         acc += (a * b)
     return lton2 * acc
+
+def f_s(s, w, l):
+	return (s*w*(1-w)+l)/(s*(1-w)+l)
+
+def calc_bessel_integrals(s, omega, l, N):
+	u = f_s(s, omega, l)
+	su = u**0.5
+	dx = 1./N
+	r = np.zeros(2*N+1)
+	bsls = np.zeros(2*N+1)
+	for i in range(1, 2*N+1):
+		r[i] = 1/su * iti0k0(i*dx*su)[1]
+		bsls[i] = r[i] - r[i-1]
+	return bsls
