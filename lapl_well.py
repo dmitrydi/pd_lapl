@@ -37,7 +37,7 @@ class LaplWell():
 		green_matrix = helper.get_green_matrix(self, s)
 		source_matrix = helper.get_source_matrix(self, s)
 		right_part = helper.get_right_part(self,s)
-		solution = np.linalg.solve(dummy_matrix + green_matrix + source_matrix, right_part)
+		solution = np.linalg.solve(dummy_matrix - green_matrix + source_matrix, right_part)
 		self.p_lapl = solution[0]
 		self.source_distrib = solution[1:]
 		self.q_lapl = 1./s/s/self.p_lapl

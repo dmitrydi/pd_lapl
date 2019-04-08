@@ -1,6 +1,7 @@
 from mpmath import invertlaplace
 from lapl_well import LaplWell
-from source_helper import nlinvsteh
+from source_helper import calc_stehf_coef
+import numpy as np
 
 class Well():
 	# class for describing a well
@@ -10,7 +11,8 @@ class Well():
 		top_bound,
 		bottom_bound,
 		wtype,
-		params, 
+		params,
+		n_stehf, 
 		zw = 0):
 		self.params = params
 		self.xwd = xw/self.params["ref_length"]
@@ -20,6 +22,8 @@ class Well():
 		self.top_bound = top_bound
 		self.bottom_bound = bottom_bound
 		self.wtype = wtype
+		self.n_stehf = n_stehf
+		self.v = calc_stehf_coef(self.n_stehf)
 		self.lapl_well = LaplWell(
 			self.xwd,
 			self.ywd,
@@ -35,7 +39,11 @@ class Well():
 		return self.lapl_well.p_lapl
 
 	def get_pw(self, t):
-		return nlinvsteh(self.fp, t, n = 8)
+		ans = 0.
+		for i in range(1, self.n_stehf+1):
+			p = i * np.log(2.)/t
+			ans += self.fp(p)*self.v[i]*p/i
+		return ans
 
 	def get_q(self, t, Pwf):
 		# returns well rate Q at time t given the bottomhole pressure is Pwf

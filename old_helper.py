@@ -51,7 +51,7 @@ class OldHelper():
 		Fcd = well.params["Fcd"]
 		coef = np.pi * dx/Fcd/s
 		b = np.zeros((1+N))
-		b[-1] = 1/s/dx
+		b[-1] = 1./s/dx
 		for i in range(1,N+1):
 			b[i-1] = coef*(i)
 		return b
