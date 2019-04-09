@@ -7,23 +7,14 @@ import numpy as np
 def frac_inf_imp_imp(xd, yd, xwd, ywd, su, c, int_lim1, int_lim2):
 	if yd == ywd:
 		if (xd - xwd - c*int_lim2) >=0:
-			try:
-				return 1/c/su*(iti0k0(su*abs(xd-xwd-c*int_lim1))[1] - iti0k0(su*abs(xd-xwd-c*int_lim2))[1])
-			except:
-				print(type(su*abs(xd-xwd-c*int_lim1)), type(su*abs(xd-xwd-c*int_lim2)))
-				raise
+			print(1, xd-xwd-c*int_lim1, xd-xwd-c*int_lim2)
+			return 1/c/su*(iti0k0(su*(xd-xwd-c*int_lim1))[1] - iti0k0(su*(xd-xwd-c*int_lim2))[1]) #OK
 		elif (xd - xwd - c*int_lim1) <0:
-			try:
-				return 1/c/su*(iti0k0(su*abs(c*int_lim2+xwd-xd))[1] - iti0k0(su*abs(c*int_lim1+xwd-xd))[1])
-			except:
-				print(type(su*abs(c*int_lim2+xwd-xd)), type(su*abs(c*int_lim1+xwd-xd)))
-				raise
+			print(2, c*int_lim2+xwd-xd, c*int_lim1+xwd-xd)
+			return 1/c/su*(iti0k0(su*(c*int_lim2+xwd-xd))[1] - iti0k0(su*(c*int_lim1+xwd-xd))[1])
 		else:
-			try:
-				return 1/c/su*(iti0k0(su*abs(xd-xwd-c*int_lim1))[1] + iti0k0(su*abs(c*int_lim2+xwd-xd))[1])
-			except:
-				print(type(su*abs(xd-xwd-c*int_lim1)), type(su*abs(c*int_lim2+xwd-xd)))
-				raise
+			print(3, xd-xwd-c*int_lim1, c*int_lim2+xwd-xd)
+			return 1/c/su*(iti0k0(su*(xd-xwd-c*int_lim1))[1] + iti0k0(su*(c*int_lim2+xwd-xd))[1])
 	else:
 		return quad(integrand_frac_inf_imp_imp, int_lim1, int_lim2, args = (xd, xwd, yd, ywd, c, su))[0]
 
@@ -91,6 +82,7 @@ def calc_bessel_integrals(s, omega, l, N):
 	u = s*f_s(s, omega, l)
 	#print("u: {}".format(u))
 	su = u**0.5
+	print(su)
 	dx = 1./N
 	r = np.zeros(2*N+1)
 	bsls = np.zeros(2*N+1)

@@ -29,6 +29,7 @@ class LaplWell():
 		self.Q_lapl = None
 
 	def recalc(self, s, mode="old"):
+		# param 'mode' sets wheter 2*n_seg+1 matrix, or n_seg+1 matrix for source distribution calculation
 		if mode == "old":
 			helper = OldHelper()
 		else:
