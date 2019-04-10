@@ -32,8 +32,10 @@ class LaplWell():
 		# param 'mode' sets wheter 2*n_seg+1 matrix, or n_seg+1 matrix for source distribution calculation
 		if mode == "old":
 			helper = OldHelper()
-		else:
+		elif mode == "new":
 			helper = Helper()
+		else:
+			raise AttributeError("mode not specified, may be 'old' or 'new'")
 		dummy_matrix = helper.get_dummy_matrix(self)
 		green_matrix = helper.get_green_matrix(self, s)
 		source_matrix = helper.get_source_matrix(self, s)

@@ -34,15 +34,15 @@ class Well():
 			self.wtype,
 			self.params)
 
-	def fp(self, p):
-		self.lapl_well.recalc(p)
+	def fp(self, p, mode):
+		self.lapl_well.recalc(p, mode)
 		return self.lapl_well.p_lapl
 
-	def get_pw(self, t):
+	def get_pw(self, t, mode = "old"):
 		ans = 0.
 		for i in range(1, self.n_stehf+1):
 			p = i * np.log(2.)/t
-			ans += self.fp(p)*self.v[i]*p/i
+			ans += self.fp(p, mode)*self.v[i]*p/i
 		return ans
 
 	def get_q(self, t, Pwf):
