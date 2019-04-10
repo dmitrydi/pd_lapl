@@ -17,10 +17,10 @@ class Helper():
 		#dummy = np.zeros((1+2*N, 1+2*N, 3))
 		dx = 1./N
 		for i in range(-N, N):
-			if i < 0:
-				xd = well.xwd + dx*i
-			else:
-				xd = well.xwd + dx*(i+1)
+			#if i < 0:
+			xd = well.xwd + dx*(i + 0.5)
+			#else:
+			#	xd = well.xwd + dx*(i+1)
 			yd = well.ywd
 			zd = 0
 			for j in range(-N, N):
@@ -44,6 +44,8 @@ class Helper():
 					m[N + i, N + j+1] = i - j + 1
 					m[N - i - 1, N - j ] = i - j + 1
 			m *= coef
+			for i in range(0, 2*N):
+				m[i, i+1] = 0.125 * coef
 		else:
 			raise
 		return m
@@ -56,7 +58,7 @@ class Helper():
 		b = np.zeros((1+2*N))
 		b[-1] = 1/s/dx
 		for i in range(N):
-			b[N+i] = coef*(i+1)
-			b[N-i-1] = coef*(i+1)
+			b[N+i] = coef*(i+0.5)
+			b[N-i-1] = coef*(i+0.5)
 		return b
 
