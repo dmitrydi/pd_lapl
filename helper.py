@@ -14,7 +14,7 @@ class Helper():
 	def get_green_matrix(self, well, s):
 		N = well.params["nseg"] # number of elements in half-length
 		m = np.zeros((1+2*N, 1+2*N))
-		dummy = np.zeros((1+2*N, 1+2*N, 3))
+		#dummy = np.zeros((1+2*N, 1+2*N, 3))
 		dx = 1./N
 		for i in range(-N, N):
 			if i < 0:
@@ -27,10 +27,10 @@ class Helper():
 				int_lim1 = well.xwd + j*dx
 				int_lim2 = well.xwd + (j + 1)*dx
 				m[i+N,1+j+N] = well.source.Green(s, xd, yd, zd, well.xwd, well.ywd, well.zwd, int_lim1, int_lim2)
-				dummy[i+N,1+j+N, 0] = xd
-				dummy[i+N,1+j+N, 1] = int_lim1
-				dummy[i+N,1+j+N, 2] = int_lim2
-		return m, dummy
+				#dummy[i+N,1+j+N, 0] = xd
+				#dummy[i+N,1+j+N, 1] = int_lim1
+				#dummy[i+N,1+j+N, 2] = int_lim2
+		return m#, dummy
 
 	def get_source_matrix(self, well, s):
 		N = well.params["nseg"]
