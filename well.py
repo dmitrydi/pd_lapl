@@ -45,6 +45,13 @@ class Well():
 			ans += self.fp(p, mode)*self.v[i]*p/i
 		return ans
 
+	def get_p_xd_yd(self, t, xd, yd, mode = "new"):
+		ans = 0.
+		for i in range(1, self.n_stehf+1):
+			p = i * np.log(2.)/t
+			ans += self.lapl_well.p_lapl_xy(s, xd, yd, mode)*self.v[i]*p/i
+		return ans
+
 	def get_q(self, t, Pwf):
 		# returns well rate Q at time t given the bottomhole pressure is Pwf
 		pass

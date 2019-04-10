@@ -24,12 +24,14 @@ class LaplWell():
 			self.wtype,
 			self.params)
 		self.source_distrib = None
+		self.last_s = -1
 		self.p_lapl = None
 		self.q_lapl = None
 		self.Q_lapl = None
 
 	def recalc(self, s, mode="old"):
 		# param 'mode' sets wheter 2*n_seg+1 matrix, or n_seg+1 matrix for source distribution calculation
+		self.last_s = s
 		if mode == "old":
 			helper = OldHelper()
 		elif mode == "new":
@@ -45,5 +47,16 @@ class LaplWell():
 		self.source_distrib = solution[1:]
 		self.q_lapl = 1./s/s/self.p_lapl
 		self.Q_lapl = 1./s/self.p_lapl # check!
+
+	def p_lapl_xy(self, s, xd, yd, mode="old"):
+		if mode !="new":
+			raise AttributeError("mode for p_lapl_xy must be 'new'")
+		helper = Helper()
+		if s != self.last_s:
+			self.recalc(s, mode)
+		sources = self.source_distrib
+		green_vector = helper.get_green_vector(self, xd, yd, 0, s)
+		return np.sum(sources, green_vector)
+
 
 

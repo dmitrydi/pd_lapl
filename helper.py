@@ -14,23 +14,26 @@ class Helper():
 	def get_green_matrix(self, well, s):
 		N = well.params["nseg"] # number of elements in half-length
 		m = np.zeros((1+2*N, 1+2*N))
-		#dummy = np.zeros((1+2*N, 1+2*N, 3))
 		dx = 1./N
 		for i in range(-N, N):
-			#if i < 0:
 			xd = well.xwd + dx*(i + 0.5)
-			#else:
-			#	xd = well.xwd + dx*(i+1)
 			yd = well.ywd
 			zd = 0
 			for j in range(-N, N):
 				int_lim1 = well.xwd + j*dx
 				int_lim2 = well.xwd + (j + 1)*dx
 				m[i+N,1+j+N] = well.source.Green(s, xd, yd, zd, well.xwd, well.ywd, well.zwd, int_lim1, int_lim2)
-				#dummy[i+N,1+j+N, 0] = xd
-				#dummy[i+N,1+j+N, 1] = int_lim1
-				#dummy[i+N,1+j+N, 2] = int_lim2
-		return m#, dummy
+		return m
+
+	def get_green_vector(self, well, xd, yd, zd, s):
+		N = well.params["nseg"]
+		v = np.zeros(2*N)
+		dx = 1./N
+		for j in range(-N, N):
+			int_lim1 = well.xwd + j*dx
+			int_lim2 = well.xwd + (j + 1)*dx
+			v[j+N] = well.source.Green(s, xd, yd, zd, well.xwd, well.ywd, well.zwd, int_lim1, int_lim2)
+		return v
 
 	def get_source_matrix(self, well, s):
 		N = well.params["nseg"]
