@@ -29,15 +29,11 @@ class LaplWell():
 		self.q_lapl = None
 		self.Q_lapl = None
 
-	def recalc(self, s, mode="old"):
+	def recalc(self, s):
+		# recalculates source distribution in the well for Laplace parameter s
 		# param 'mode' sets wheter 2*n_seg+1 matrix, or n_seg+1 matrix for source distribution calculation
-		self.last_s = s
-		if mode == "old":
-			helper = OldHelper()
-		elif mode == "new":
-			helper = Helper()
-		else:
-			raise AttributeError("mode not specified, may be 'old' or 'new'")
+		self.last_s = s # keeps the last s of recalc of the well, for speed
+		helper = Helper()
 		dummy_matrix = helper.get_dummy_matrix(self)
 		green_matrix = helper.get_green_matrix(self, s)
 		source_matrix = helper.get_source_matrix(self, s)
@@ -48,15 +44,18 @@ class LaplWell():
 		self.q_lapl = 1./s/s/self.p_lapl
 		self.Q_lapl = 1./s/self.p_lapl # check!
 
-	def p_lapl_xy(self, s, xd, yd, mode="old"):
-		if mode !="new":
-			raise AttributeError("mode for p_lapl_xy must be 'new'")
+	def p_lapl_xy(self, s, xd, yd, zd):
+		# calculates dimentionless pressure in Laplace space at point (xd, yd, zd)
 		helper = Helper()
 		if s != self.last_s:
-			self.recalc(s, mode)
+			self.recalc(s) # if source distribution for parameter s is unknown then recalc
+		if xd == self.xwd and yd == self.ywd and zd == self.zwd:
+			return self.p_lapl # return bottomhole pressure
 		sources = self.source_distrib
-		green_vector = helper.get_green_vector(self, xd, yd, 0, s)
-		return np.sum(sources, green_vector)
+		green_vector = helper.get_green_vector(self, xd, yd, zd, s)
+		#print("sources {}".format(sources))
+		#print("green_vector {}".format(green_vector))
+		return np.sum(sources*green_vector)
 
 
 

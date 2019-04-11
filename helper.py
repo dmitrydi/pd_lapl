@@ -15,10 +15,11 @@ class Helper():
 		N = well.params["nseg"] # number of elements in half-length
 		m = np.zeros((1+2*N, 1+2*N))
 		dx = 1./N
+		if well.wtype in ["frac", "vertical"]:
+				zd = 0
 		for i in range(-N, N):
 			xd = well.xwd + dx*(i + 0.5)
 			yd = well.ywd
-			zd = 0
 			for j in range(-N, N):
 				int_lim1 = well.xwd + j*dx
 				int_lim2 = well.xwd + (j + 1)*dx
@@ -29,6 +30,8 @@ class Helper():
 		N = well.params["nseg"]
 		v = np.zeros(2*N)
 		dx = 1./N
+		if well.wtype in ["frac", "vertical"]:
+			zd = 0
 		for j in range(-N, N):
 			int_lim1 = well.xwd + j*dx
 			int_lim2 = well.xwd + (j + 1)*dx
@@ -64,4 +67,6 @@ class Helper():
 			b[N+i] = coef*(i+0.5)
 			b[N-i-1] = coef*(i+0.5)
 		return b
+	
+	
 

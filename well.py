@@ -1,6 +1,6 @@
 from mpmath import invertlaplace
 from lapl_well import LaplWell
-from source_helper import calc_stehf_coef
+from source_helper import calc_stehf_coef, lapl_invert
 import numpy as np
 
 class Well():
@@ -34,23 +34,13 @@ class Well():
 			self.wtype,
 			self.params)
 
-	def fp(self, p, mode):
-		self.lapl_well.recalc(p, mode)
-		return self.lapl_well.p_lapl
+	def get_pw(self, t):
+		f = lambda p: self.lapl_well.p_lapl_xy(p, self.xwd, self.ywd, self.zwd)
+		return lapl_invert(f, t, self.v)
 
-	def get_pw(self, t, mode = "old"):
-		ans = 0.
-		for i in range(1, self.n_stehf+1):
-			p = i * np.log(2.)/t
-			ans += self.fp(p, mode)*self.v[i]*p/i
-		return ans
-
-	def get_p_xd_yd(self, t, xd, yd, mode = "new"):
-		ans = 0.
-		for i in range(1, self.n_stehf+1):
-			p = i * np.log(2.)/t
-			ans += self.lapl_well.p_lapl_xy(s, xd, yd, mode)*self.v[i]*p/i
-		return ans
+	def get_p_xd_yd(self, t, xd, yd, zd=0):
+		f = lambda p: self.lapl_well.p_lapl_xy(p, xd, yd, zd)
+		return lapl_invert(f, t, self.v)
 
 	def get_q(self, t, Pwf):
 		# returns well rate Q at time t given the bottomhole pressure is Pwf

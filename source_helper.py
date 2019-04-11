@@ -7,13 +7,10 @@ import numpy as np
 def frac_inf_imp_imp(xd, yd, xwd, ywd, su, c, int_lim1, int_lim2):
 	if yd == ywd:
 		if (xd - xwd - c*int_lim2) >=0:
-			# print(1, xd-xwd-c*int_lim1, xd-xwd-c*int_lim2)
 			return 1/c/su*(iti0k0(su*(xd-xwd-c*int_lim1))[1] - iti0k0(su*(xd-xwd-c*int_lim2))[1]) #OK
 		elif (xd - xwd - c*int_lim1) <0:
-			# print(2, c*int_lim2+xwd-xd, c*int_lim1+xwd-xd)
 			return 1/c/su*(iti0k0(su*(c*int_lim2+xwd-xd))[1] - iti0k0(su*(c*int_lim1+xwd-xd))[1])
 		else:
-			# print(3, xd-xwd-c*int_lim1, c*int_lim2+xwd-xd)
 			return 1/c/su*(iti0k0(su*(xd-xwd-c*int_lim1))[1] + iti0k0(su*(c*int_lim2+xwd-xd))[1])
 	else:
 		return quad(integrand_frac_inf_imp_imp, int_lim1, int_lim2, args = (xd, xwd, yd, ywd, c, su))[0]
@@ -53,6 +50,15 @@ def calc_stehf_coef(n):
 		v[i] *= SN
 		SN = -1*SN
 	return v
+
+def lapl_invert(f, t, stehf_coefs):
+	ans = 0.
+	N = len(stehf_coefs)
+	for i in range(1, N):
+		p = i * np.log(2.)/t
+		f_ = f(p)
+		ans += f_*stehf_coefs[i]*p/i
+	return ans
 '''
 def csteh(n, i):
     acc = 0.0
