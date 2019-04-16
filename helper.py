@@ -36,7 +36,7 @@ class Helper():
 		for j in range(-N, N):
 			int_lim1 = well.xwd + j*dx
 			int_lim2 = well.xwd + (j + 1)*dx
-			v[j+N] = well.source.Green(s, xd, yd, zd, well.xwd, well.ywd, well.zwd, int_lim1, int_lim2)
+			v[j+N] = 0.5*well.source.Green(s, xd, yd, zd, well.xwd, well.ywd, well.zwd, int_lim1, int_lim2)
 		return v
 
 	def get_source_matrix(self, well, s):
