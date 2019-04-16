@@ -26,7 +26,7 @@ class Helper():
 			for j in range(-N, N):
 				int_lim1 = well.xwd + j*dx
 				int_lim2 = well.xwd + (j + 1)*dx
-				m[i+N,1+j+N] = well.source.Green(s, xd, yd, zd, well.xwd, well.ywd, well.zwd, int_lim1, int_lim2)
+				m[i+N,1+j+N] = 0.5*well.source.Green(s, xd, yd, zd, well.xwd, well.ywd, well.zwd, int_lim1, int_lim2)
 		return m
 
 	def get_green_vector(self, well, xd, yd, zd, s):
@@ -69,7 +69,7 @@ class Helper():
 		Fcd = well.params["Fcd"]
 		coef = np.pi * dx/Fcd/s
 		b = np.zeros((1+2*N))
-		b[-1] = 1/s/dx
+		b[-1] = 2./s/dx
 		for i in range(N):
 			b[N+i] = coef*(i+0.5)
 			b[N-i-1] = coef*(i+0.5)
