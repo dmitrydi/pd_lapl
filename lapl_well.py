@@ -2,6 +2,7 @@ from source import LaplSource
 from helper import Helper
 from old_helper import OldHelper
 import numpy as np
+from geometry_keeper import GeometryKeeper
 
 class LaplWell():
 	# class for defining a well in Laplace space
@@ -18,6 +19,8 @@ class LaplWell():
 		self.bottom_bound = bottom_bound
 		self.wtype = wtype
 		self.params = params
+		self.c = (((self.params["kx"]*self.params["ky"]*self.params["kz"])**(1./3.))/self.params["kx"])**0.5
+		self.round_val = 7
 		self.source = LaplSource(self.outer_bound,
 			self.top_bound,
 			self.bottom_bound,
@@ -28,6 +31,7 @@ class LaplWell():
 		self.p_lapl = None
 		self.q_lapl = None
 		self.Q_lapl = None
+		self.geokeeper = GeometryKeeper(self)
 
 	def recalc(self, s):
 		# recalculates source distribution in the well for Laplace parameter s

@@ -33,6 +33,7 @@ class Well():
 			self.bottom_bound,
 			self.wtype,
 			self.params)
+		self.c = (((self.params["kx"]*self.params["ky"]*self.params["kz"])**(1./3.))/self.params["kx"])**0.5
 
 	def get_pw(self, t):
 		f = lambda p: self.lapl_well.p_lapl_xy(p, self.xwd, self.ywd, self.zwd)
