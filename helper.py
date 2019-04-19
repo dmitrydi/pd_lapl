@@ -12,6 +12,26 @@ class Helper():
 		m[-1, 1:] = 1
 		return m
 
+	def dev_get_green_matrix(self, well, s):
+		if well.wtype == "frac":
+			unique_integrals = well.source.calc_source_funcs(s)
+			green_matrix = self.combine_green_matrix(well, unique_integrals)
+		else:
+			raise NotImplementedError
+		return green_matrix
+
+	def combine_green_matrix(self, well, uints):
+		if well.wtype == "frac":
+			N = well.params["nseg"]
+			m = np.zeros((1+2*N, 1+2*N))
+			i1 = uints[np.argwhere(well.gk.ulims == well.gk.alims1.reshape(4*N*N,1))[:,1]].reshape(2*N,2*N)
+			i2 = uints[np.argwhere(well.gk.ulims == well.gk.alims2.reshape(4*N*N,1))[:,1]].reshape(2*N,2*N)
+			integrals = np.multiply(i1, well.gk.mask_int_1) + np.multiply(i2, well.gk.mask_int_2)
+		else:
+			raise NotImplementedError
+		m[:2*N, 1:] = integrals
+		return m
+
 	def get_green_matrix(self, well, s):
 		N = well.params["nseg"] # number of elements in half-length
 		m = np.zeros((1+2*N, 1+2*N))

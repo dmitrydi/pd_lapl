@@ -21,17 +21,13 @@ class LaplWell():
 		self.params = params
 		self.c = (((self.params["kx"]*self.params["ky"]*self.params["kz"])**(1./3.))/self.params["kx"])**0.5
 		self.round_val = 7
-		self.source = LaplSource(self.outer_bound,
-			self.top_bound,
-			self.bottom_bound,
-			self.wtype,
-			self.params)
 		self.source_distrib = None
 		self.last_s = -1
 		self.p_lapl = None
 		self.q_lapl = None
 		self.Q_lapl = None
-		self.geokeeper = GeometryKeeper(self)
+		self.gk = GeometryKeeper(self)
+		self.source = LaplSource(self)
 
 	def recalc(self, s):
 		# recalculates source distribution in the well for Laplace parameter s
