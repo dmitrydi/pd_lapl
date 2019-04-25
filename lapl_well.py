@@ -3,6 +3,8 @@ from helper import Helper
 from old_helper import OldHelper
 import numpy as np
 from geometry_keeper import GeometryKeeper
+from scipy.integrate import romberg, quad
+from scipy.interpolate import InterpolatedUnivariateSpline
 
 class LaplWell():
 	# class for defining a well in Laplace space
@@ -41,21 +43,26 @@ class LaplWell():
 		solution = np.linalg.solve(dummy_matrix - green_matrix + source_matrix, right_part)
 		self.p_lapl = solution[0]
 		self.source_distrib = solution[1:]
+		self.smoothed_distrib = InterpolatedUnivariateSpline(np.array(self.gk.xcs)[0], self.source_distrib, k=4)
 		self.q_lapl = 1./s/s/self.p_lapl
 		self.Q_lapl = 1./s/self.p_lapl # check!
 
 	def p_lapl_xy(self, s, xd, yd, zd):
 		# calculates dimentionless pressure in Laplace space at point (xd, yd, zd)
-		helper = Helper()
 		if s != self.last_s:
 			self.recalc(s) # if source distribution for parameter s is unknown then recalc
 		if xd == self.xwd and yd == self.ywd and zd == self.zwd:
 			return self.p_lapl # return bottomhole pressure
-		sources = self.source_distrib
-		green_vector = helper.get_green_vector(self, xd, yd, zd, s)
-		#print("sources {}".format(sources))
-		#print("green_vector {}".format(green_vector))
-		return np.sum(sources*green_vector)
+		# sources = self.source_distrib
+		# xcs = np.array(self.gk.xcs)[0]
+		# fi = InterpolatedUnivariateSpline(xcs, sources, k=4)
+		if self.wtype == "frac":
+			g = lambda x: self.smoothed_distrib(x)*self.source.frac_source_function(x, s, xd, yd)
+			if yd != self.ywd or xd == self.xwd:
+				return romberg(g, self.xwd-1, self.xwd+1, rtol=1e-6)
+			else:
+				return quad(g, self.xwd-1, abs(xd-self.xwd), epsrel = 1e-6)[0] + quad(g, abs(xd-self.xwd), self.xwd+1, epsrel = 1e-6)[0]
+
 
 
 
