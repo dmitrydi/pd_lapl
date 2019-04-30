@@ -43,9 +43,9 @@ class LaplWell():
 		solution = np.linalg.solve(dummy_matrix - green_matrix + source_matrix, right_part)
 		self.p_lapl = solution[0]
 		self.source_distrib = solution[1:]
-		self.smoothed_distrib = InterpolatedUnivariateSpline(np.array(self.gk.xcs)[0], self.source_distrib, k=4)
+		self.smoothed_distrib = InterpolatedUnivariateSpline(np.array(self.gk.sg["xcs"])[0], self.source_distrib, k=4)
 		self.q_lapl = 1./s/s/self.p_lapl
-		self.Q_lapl = 1./s/self.p_lapl # check!
+		self.Q_lapl = self.q_lapl/s
 
 	def p_lapl_xy(self, s, xd, yd, zd):
 		# calculates dimentionless pressure in Laplace space at point (xd, yd, zd)
@@ -57,7 +57,7 @@ class LaplWell():
 		# xcs = np.array(self.gk.xcs)[0]
 		# fi = InterpolatedUnivariateSpline(xcs, sources, k=4)
 		if self.wtype == "frac":
-			g = lambda x: self.smoothed_distrib(x)*self.source.frac_source_function(x, s, xd, yd)
+			g = lambda x: self.smoothed_distrib(x)*self.source.frac_source_function(x, s, xd, yd, self.xwd, self.ywd, self.c)
 			if yd != self.ywd or xd == self.xwd:
 				return romberg(g, self.xwd-1, self.xwd+1, rtol=1e-6)
 			else:

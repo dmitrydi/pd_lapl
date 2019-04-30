@@ -1,7 +1,8 @@
 from mpmath import invertlaplace
 from lapl_well import LaplWell
-from source_helper import calc_stehf_coef, lapl_invert
+#from source_helper import calc_stehf_coef, lapl_invert
 import numpy as np
+from helper import Helper
 
 class Well():
 	# class for describing a well
@@ -23,7 +24,8 @@ class Well():
 		self.bottom_bound = bottom_bound
 		self.wtype = wtype
 		self.n_stehf = n_stehf
-		self.v = calc_stehf_coef(self.n_stehf)
+		self.h = Helper()
+		self.v = self.h.calc_stehf_coef(self.n_stehf)
 		self.lapl_well = LaplWell(
 			self.xwd,
 			self.ywd,
@@ -37,16 +39,27 @@ class Well():
 
 	def get_pw(self, t):
 		f = lambda p: self.lapl_well.p_lapl_xy(p, self.xwd, self.ywd, self.zwd)
-		return lapl_invert(f, t, self.v)
+		return self.h.lapl_invert(f, t, self.v)
 
 	def get_p_xd_yd(self, t, xd, yd, zd=0):
 		f = lambda p: self.lapl_well.p_lapl_xy(p, xd, yd, zd)
-		return lapl_invert(f, t, self.v)
+		return self.h.lapl_invert(f, t, self.v)
 
-	def get_q(self, t, Pwf):
-		# returns well rate Q at time t given the bottomhole pressure is Pwf
-		pass
+	def get_q(self, t):
+		def _f(p):
+			self.lapl_well.recalc(p)
+			return self.lapl_well.q_lapl
+		return self.h.lapl_invert(_f, t, self.v)
 
-	def print_source_distribution(self, t):
-		pass
+	def get_cumulative_q(self, t):
+		def _f(p):
+			self.lapl_well.recalc(p)
+			return self.lapl_well.Q_lapl
+		return self.h.lapl_invert(_f, t, self.v)
+
+	def get_source_distribution(self, t):
+		def _f(p):
+			self.lapl_well.recalc(p)
+			return self.lapl_well.source_distrib
+		return self.h.lapl_invert(_f, t, self.v)
 

@@ -14,10 +14,10 @@ class LaplSource():
 		l = self.well.params["lambda"]
 		return (s*w*(1-w)+l)/(s*(1-w)+l)
 
-	def frac_source_function(self, x, s, xd, yd):
+	def frac_source_function(self, x, s, xd, yd, xwd, ywd, c):
 		fs = self.f_s(s)
 		su = (s*fs)**0.5
-		return 0.5*k0(su*((xd - self.well.xwd - self.well.c*x)**2 + (yd - self.well.ywd)**2)**0.5) #check 0.5!
+		return 0.5*k0(su*((xd - xwd - c*x)**2 + (yd - ywd)**2)**0.5) #check 0.5!
 
 
 	def calc_source_funcs(self, s):
@@ -25,17 +25,10 @@ class LaplSource():
 		su = (s*fs)**0.5
 		if self.well.wtype == "frac":
 			c = self.well.c
-			uvals = 0.5/c/su*iti0k0(su*self.well.gk.ulims)[1]
+			uvals = 0.5/c/su*iti0k0(su*self.well.gk.sg["ulims"])[1]
 		else:
 			raise NotImplementedError
 		return uvals
-
-	def pd(u, xd, yd, zd, xcd, ycd, zcd):
-		# pressure response in space point (xd, yd, zd)
-		# works only if source strength is calculated
-		if self.q is None:
-			raise ValueError("Source strength q in unindentified")
-		pass
 
 '''
 	def calc_source_xd_yd(self, s, xd, yd):

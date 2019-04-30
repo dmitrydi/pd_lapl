@@ -20,29 +20,38 @@ class Helper():
 			raise NotImplementedError
 		return green_matrix
 
+	def get_green_matrix_general(self, wells, s, outer_bound):
+		if outer_bound == "infinite":
+			self_matrix_ = self.get_green_matrix(wells[0], s)
+			self_matrix = self_matrix_[:2*N, 1:]
+			gdict = dict()
+			for i in range(nwells):
+				this_well = wells["well_"+str(i)]
+				for j in range(nwells):
+					if i != j:
+						that_well = wells["well_"+str(j)]
+						this_well.gk.make_mutual_geometry(gdict, that_well)
+						lims1 = gdict["lims1"]
+						lims2 = gdict["lims2"]
+						mxd = gdict["mxd"]
+						myd = gdict["myd"]
+
+
+		else:
+			raise NotImplementedError
+
 	def combine_green_matrix(self, well, uints):
+		# takes unique integrals of segments and make adding and substraction of values using gk.masks
 		if well.wtype == "frac":
 			N = well.params["nseg"]
 			m = np.zeros((1+2*N, 1+2*N))
-			i1 = uints[np.argwhere(well.gk.ulims == well.gk.alims1.reshape(4*N*N,1))[:,1]].reshape(2*N,2*N)
-			i2 = uints[np.argwhere(well.gk.ulims == well.gk.alims2.reshape(4*N*N,1))[:,1]].reshape(2*N,2*N)
-			integrals = np.multiply(i1, well.gk.mask_int_1) + np.multiply(i2, well.gk.mask_int_2)
+			i1 = uints[np.argwhere(well.gk.sg["ulims"] == well.gk.sg["alims1"].reshape(4*N*N,1))[:,1]].reshape(2*N,2*N)
+			i2 = uints[np.argwhere(well.gk.sg["ulims"] == well.gk.sg["alims2"].reshape(4*N*N,1))[:,1]].reshape(2*N,2*N)
+			integrals = np.multiply(i1, well.gk.sg["mask_int_1"]) + np.multiply(i2, well.gk.sg["mask_int_2"])
 		else:
 			raise NotImplementedError
 		m[:2*N, 1:] = integrals
 		return m
-
-	def get_green_vector(self, well, xd, yd, zd, s):
-		N = well.params["nseg"]
-		v = np.zeros(2*N)
-		dx = 1./N
-		if well.wtype in ["frac", "vertical"]:
-			zd = 0
-		for j in range(-N, N):
-			int_lim1 = well.xwd + j*dx
-			int_lim2 = well.xwd + (j + 1)*dx
-			v[j+N] = 0.5*well.source.Green(s, xd, yd, zd, well.xwd, well.ywd, well.zwd, int_lim1, int_lim2)
-		return v
 
 	def get_source_matrix(self, well, s):
 		N = well.params["nseg"]
@@ -78,6 +87,48 @@ class Helper():
 			b[N+i] = coef*(i+0.5)
 			b[N-i-1] = coef*(i+0.5)
 		return b
+
+	def calc_stehf_coef(self, n):
+		v = np.array(range(n+1), dtype = np.float)
+		g = np.array(range(161), dtype = np.float)
+		h = np.array(range(81), dtype = np.float)
+		g[1] = 1
+		NH = n // 2
+		for i in range(2, n+1):
+			g[i] = g[i-1]*i
+		h[1] = 2./ g[NH - 1]
+		for i in range(2, NH+1):
+			fi = i
+			if i != NH:
+				h[i] = (fi ** NH)*g[2*i]/(g[NH - i]*g[i]*g[i - 1])
+			else:
+				h[i] = (fi ** NH)*g[2*i]/(g[i]*g[i - 1])
+		SN = 2 * (NH - (NH // 2)*2) - 1
+		for i in range(1, n+1):
+			v[i] = 0.
+			K1 = (i + 1) // 2
+			K2 = i
+			if K2 > NH:
+				K2 = NH
+			for k in range(K1, K2 + 1):
+				if 2*k - i == 0:
+					v[i] += h[k]/g[i - k]
+				elif i == k:
+					v[i] += h[k]/g[2*k - i]
+				else:
+					v[i] += h[k]/(g[i - k]*g[2*k - i])
+			v[i] *= SN
+			SN = -1*SN
+		return v
+
+	def lapl_invert(self, f, t, stehf_coefs):
+		ans = 0.
+		N = len(stehf_coefs)
+		for i in range(1, N):
+			p = i * np.log(2.)/t
+			f_ = f(p)
+			ans += f_*stehf_coefs[i]*p/i
+		return ans
 
 
 '''
@@ -181,6 +232,18 @@ NOT USED
 		v = np.zeros(len(limits))
 		for i, lim in enumerate(limits):
 			v[i] = iti0k0(su*lim)[1]
+		return v
+
+	def get_green_vector(self, well, xd, yd, zd, s):
+		N = well.params["nseg"]
+		v = np.zeros(2*N)
+		dx = 1./N
+		if well.wtype in ["frac", "vertical"]:
+			zd = 0
+		for j in range(-N, N):
+			int_lim1 = well.xwd + j*dx
+			int_lim2 = well.xwd + (j + 1)*dx
+			v[j+N] = 0.5*well.source.Green(s, xd, yd, zd, well.xwd, well.ywd, well.zwd, int_lim1, int_lim2)
 		return v
 '''
 
