@@ -4,7 +4,7 @@ from geometry_keeper import GeometryKeeper
 from scipy.linalg import block_diag
 
 class MultifracLapl():
-	def __init__(self, nwells, xws, yws, outer_bound, top_bound, bottom_bound, params, n_stehf):
+	def __init__(self, nwells, xws, yws, outer_bound, top_bound, bottom_bound, params, n_stehf, int_type="quad", npoints=5):
 		self.wells = dict()
 		for i in range(nwells):
 			self.wells["well_"+str(i)] = LaplWell(xws[i], yws[i], 0., outer_bound, top_bound, bottom_bound, "frac", params)
@@ -24,6 +24,8 @@ class MultifracLapl():
 				self.geo[i*2*self.N:(i+1)*2*self.N, j*2*self.N:(j+1)*2*self.N, 4] = gdict["mask_int_2"]
 		self.geo = self.geo.reshape(-1, 5)
 		self.last_s = -1.
+		self.int_type = int_type
+		self.npoints = npoints
 
 	def pw_lapl(self, s):
 		if s != self.last_s:
@@ -39,6 +41,9 @@ class MultifracLapl():
 		right_part = self.get_right_part(s)
 		solution = np.linalg.solve(matrix, right_part)
 		self.p_lapl = solution[0]
+		self.source_distrib = solution[1:]
+		self.q_lapl = 1./s/s/self.p_lapl
+		self.Q_lapl = self.q_lapl/s
 
 	def get_green_matrix(self, s):
 		orig_shape = (self.nwells*self.N*2, self.nwells*self.N*2) # original shape of resultant Green matrix
@@ -47,35 +52,41 @@ class MultifracLapl():
 		dyd_0_inds = np.argwhere(self.geo[:, 2] == 0.).flatten()
 		items_dyd_0 = self.geo[dyd_0_inds]
 		# select unique values for using iti0k0:
-		lims1 = items_dyd_0[:,0]
-		lims2 = items_dyd_0[:,1]
-		lims = np.append(lims1, lims2)
-		mask_1 = items_dyd_0[:,-2]
-		mask_2 = items_dyd_0[:,-1]
-		n_lims1 = len(lims1)
-		ulims, inds = np.unique(lims, return_inverse = True)
-		uvals = self.wells["well_0"].source.integrate_source_functions(s,
-				np.zeros_like(ulims, dtype=np.float),
-				ulims,
-				np.zeros_like(ulims, dtype=np.float))
-		vals = uvals[inds]
-		vals1 = vals[:n_lims1]
-		vals2 = vals[n_lims1:]
-		vals = vals1*mask_1 + vals2*mask_2
-		green_matrix[dyd_0_inds] = vals
+		if len(dyd_0_inds) > 0:
+			lims1 = items_dyd_0[:,0]
+			lims2 = items_dyd_0[:,1]
+			lims = np.append(lims1, lims2)
+			mask_1 = items_dyd_0[:,-2]
+			mask_2 = items_dyd_0[:,-1]
+			n_lims1 = len(lims1)
+			ulims, inds = np.unique(lims, return_inverse = True)
+			uvals = self.wells["well_0"].source.integrate_source_functions(s,
+					np.zeros_like(ulims, dtype=np.float),
+					ulims,
+					np.zeros_like(ulims, dtype=np.float))
+			vals = uvals[inds]
+			vals1 = vals[:n_lims1]
+			vals2 = vals[n_lims1:]
+			vals = vals1*mask_1 + vals2*mask_2
+			green_matrix[dyd_0_inds] = vals
 		# find indices where dyd != 0
 		dyd_nnz_inds = np.argwhere(self.geo[:, 2] != 0.).flatten()
-		items_dyd_nnz = self.geo[dyd_nnz_inds][:,:3]
-		lims = items_dyd_nnz[:,:2]
-		upper_lims = np.max(lims, axis=1).reshape(-1, 1)
-		upper_lims_dyds = np.hstack([upper_lims, items_dyd_nnz[:,-1].reshape(-1, 1)])
-		ulims_dyd_nnz, inds_dyd_nnz = np.unique(upper_lims_dyds, axis=0, return_inverse=True)
-		uvals_dyd_nnz = self.wells["well_0"].source.integrate_source_functions(s,
-				ulims_dyd_nnz[:, 0] - 1./self.N,
-				ulims_dyd_nnz[:, 0],
-				ulims_dyd_nnz[:, 1])
-		vals_dyd_nnz = uvals_dyd_nnz[inds_dyd_nnz]
-		green_matrix[dyd_nnz_inds] = vals_dyd_nnz
+		if len(dyd_nnz_inds) > 0:
+			items_dyd_nnz = self.geo[dyd_nnz_inds][:,:3]
+			lims = items_dyd_nnz[:,:2]
+			upper_lims = np.max(lims, axis=1).reshape(-1, 1)
+			upper_lims_dyds = np.hstack([upper_lims, items_dyd_nnz[:,-1].reshape(-1, 1)])
+			#calculate integrals only for unique sets of integration limits and yds
+			ulims_dyd_nnz, inds_dyd_nnz = np.unique(upper_lims_dyds, axis=0, return_inverse=True)
+			uvals_dyd_nnz = self.wells["well_0"].source.integrate_source_functions(s,
+					ulims_dyd_nnz[:, 0] - 1./self.N,
+					ulims_dyd_nnz[:, 0],
+					ulims_dyd_nnz[:, 1],
+					self.int_type,
+					self.npoints)
+			# make inverse - once unique integrals are calculated, we can fill values for all items
+			vals_dyd_nnz = uvals_dyd_nnz[inds_dyd_nnz]
+			green_matrix[dyd_nnz_inds] = vals_dyd_nnz
 		# done
 		return green_matrix.reshape(orig_shape)
 

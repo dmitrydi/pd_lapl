@@ -1,6 +1,6 @@
 from scipy.special import kn, k0, k1, iti0k0
 from source_helper import *
-from scipy.integrate import quad
+from scipy.integrate import quad, fixed_quad
 
 class LaplSource():
 # class for a finite element (finite liquid source) of a well or fracture
@@ -36,7 +36,7 @@ class LaplSource():
 		else:
 			raise NotImplementedError
 
-	def integrate_source_functions(self, s, lims1, lims2, dyds):
+	def integrate_source_functions(self, s, lims1, lims2, dyds, int_type = "quad", npoints = 5):
 		fs = self.f_s(s)
 		su = (s*fs)**0.5
 		c = self.well.c
@@ -53,7 +53,12 @@ class LaplSource():
 				ans[dyds_0_inds] = ints_dyd_0
 			# calculate for nonzero dyds:
 			if len(dyds_nnz_inds) > 0:
-				g = lambda x: quad(self.frac_source_func, x[0], x[1], args=(x[2], su))[0]
+				if int_type == "quad":
+					g = lambda x: quad(self.frac_source_func, x[0], x[1], args=(x[2], su))[0]
+				elif int_type == "fixed_quad":
+					g = lambda x: fixed_quad(self.frac_source_func, x[0], x[1], args=(x[2], su), n=npoints)[0]
+				else:
+					raise ArgumentError("int type should be 'quad' or 'fixed_quad'")
 				nnz_items = np.hstack([lims1[dyds_nnz_inds].reshape(-1,1), lims2[dyds_nnz_inds].reshape(-1,1), dyds[dyds_nnz_inds].reshape(-1,1)])
 				ans[dyds_nnz_inds] = np.apply_along_axis(g, 1, nnz_items)
 		else:
