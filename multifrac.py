@@ -19,6 +19,10 @@ class Multifrac():
 		self.h = Helper()
 		self.v = self.h.calc_stehf_coef(self.n_stehf)
 
+	def get_pw(self, t):
+		f = lambda p: self.lapl_well.pw_lapl(p)
+		return self.h.lapl_invert(f, t, self.v)
+
 
 
 

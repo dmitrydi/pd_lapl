@@ -20,15 +20,50 @@ class LaplSource():
 		return 0.5*k0(su*((xd - xwd - c*x)**2 + (yd - ywd)**2)**0.5) #check 0.5!
 
 
-	def calc_source_funcs(self, s):
-		fs = self.f_s(s)
-		su = (s*fs)**0.5
-		if self.well.wtype == "frac":
-			c = self.well.c
-			uvals = 0.5/c/su*iti0k0(su*self.well.gk.sg["ulims"])[1]
+	# def calc_source_funcs(self, s):
+	# 	fs = self.f_s(s)
+	# 	su = (s*fs)**0.5
+	# 	c = self.well.c
+	# 	if self.well.wtype == "frac":
+	# 		uvals = 0.5/c/su*iti0k0(su*self.well.gk["ulims"])[1]
+	# 	else:
+	# 		raise NotImplementedError
+	# 	return uvals
+
+	def frac_source_func(self, x, dyd, su):
+		if self.well.outer_bound == "infinite":
+			return 0.5*k0(su*(x*x + dyd*dyd)**0.5)
 		else:
 			raise NotImplementedError
-		return uvals
+
+	def integrate_source_functions(self, s, lims1, lims2, dyds):
+		fs = self.f_s(s)
+		su = (s*fs)**0.5
+		c = self.well.c
+		assert len(lims1) == len(lims2) == len(dyds)
+		ans = np.zeros_like(lims1)
+		if self.well.wtype == "frac":
+			dyds_0_inds = np.argwhere(dyds==0.).flatten()
+			dyds_nnz_inds = np.argwhere(dyds!=0.).flatten()
+			# calcculate for zero dyds:
+			if len(dyds_0_inds) > 0:
+				ints_dyd_0_lims1 = 0.5/c/su*iti0k0(su*lims1[dyds_0_inds])[1]
+				ints_dyd_0_lims2 = 0.5/c/su*iti0k0(su*lims2[dyds_0_inds])[1]
+				ints_dyd_0 = ints_dyd_0_lims2 - ints_dyd_0_lims1
+				ans[dyds_0_inds] = ints_dyd_0
+			# calculate for nonzero dyds:
+			if len(dyds_nnz_inds) > 0:
+				g = lambda x: quad(self.frac_source_func, x[0], x[1], args=(x[2], su))[0]
+				nnz_items = np.hstack([lims1[dyds_nnz_inds].reshape(-1,1), lims2[dyds_nnz_inds].reshape(-1,1), dyds[dyds_nnz_inds].reshape(-1,1)])
+				ans[dyds_nnz_inds] = np.apply_along_axis(g, 1, nnz_items)
+		else:
+			raise NotImplementedError
+		return ans
+
+
+
+
+
 
 '''
 	def calc_source_xd_yd(self, s, xd, yd):
