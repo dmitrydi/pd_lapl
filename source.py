@@ -25,8 +25,89 @@ class LaplSource():
 		else:
 			raise NotImplementedError
 
-	def integrate_source_functions_bounded(self, s, xds, xjs, xj1s, xed, dyds):
-		return self.ifb1(s, xds, xjs, xj1s, xed, dyds) + self.ifb2(s, xds, xjs, xj1s, xed, dyds) + self.ifb3(s, xds, xjs, xj1s, xed, dyds)
+	def integrate_source_functions_bounded(self, s, xis, xjs, xj1s, xed, yds, ywd, yed):
+		dyds = np.abs(yds - ywd)
+		return self.ifb1(s, xis, xjs, xj1s, xed, yds, ywd, yed) + self.ifb2(s, xis, xjs, xj1s, xed, yds, ywd, yed) + self.ifb3(s, xis, xjs, xj1s, xed, dyds)
+
+	def ifb1(self, s, xis, xjs, xj1s, xed, yds, ywd, yed):
+		u = s*self.f_s(s)
+		su = u**0.5
+		sexp = self.calc_sexp(su, yed)
+		yd1_w = yed - np.abs(yds-ywd)
+		yd2_w = yed - (yds+ywd)
+		p1 = 0.5*np.pi/xed/su*(np.exp(-su*(yds+ywd)) + np.exp(-su*(yed+yd2_w)) + np.exp(-su*np.abs(yds-ywd)) + np.exp(-su*(yed+yd1_w)))
+		p1 *= (1 + sexp)
+		p1 *= xj1s - xjs
+		return p1
+
+	def ifb2(self, s, xis, xjs, xj1s, xed, yds, ywd, yed, debug = False):
+		blk_size = 10
+		MAXITER = 1000
+		TINY = 1e-20
+		EPS = 1e-12
+		sum_ = np.zeros_like(xis)
+		u = s*self.f_s(s)
+		for i in range(MAXITER):
+			blk = np.arange(1+i*blk_size, 1+(i+1)*blk_size)
+			d = np.zeros_like(xis)
+			for k in blk:
+				d += self.ifb2_k(k, u, xis, xjs, xj1s, xed, yds, ywd, yed)
+			sum_ += d
+			if np.mean(np.abs(d))/(np.mean(np.abs(sum_))+TINY) < EPS:
+				if debug:
+					return sum_, i*blk_size
+				else:
+					return sum_
+		raise RuntimeWarning("ifb2 did not converge in {} steps".format(MAXITER))
+
+	def ifb2_k(self, k, s, xis, xjs, xj1s, xed, yds, ywd, yed):
+		ek = (s + k*k*np.pi*np.pi/xed/xed)**0.5
+		yd1_w = yed - np.abs(yds-ywd)
+		yd2_w = yed - (yds+ywd)
+		sexp = self.calc_sexp(ek, yed)
+		p1 = 2./k/ek*np.cos(k*np.pi*xis/xed)
+		p1 *= np.sin(k*np.pi/2./xed*(xj1s-xjs))
+		p1 *= np.cos(k*np.pi/2./xed*(2*xis - (xjs + xj1s)))
+		p1 *= (np.exp(-ek*(yds+ywd)) + np.exp(-ek*(yed+yd1_w)) + np.exp(-ek*(yed+yd2_w)))*(1 + sexp) + np.exp(-ek*np.abs(yds-ywd))*sexp
+		return p1
+
+	def calc_sexp(self, ek, yed):
+		ek_ = ek*yed
+		MAXITER = 300
+		blk_size = 3
+		TINY = 1e-20
+		EPS = 1e-12
+		sum_ = 0.
+		for i in range(1, MAXITER):
+			blk = np.arange(1+i*blk_size, 1+(i+1)*blk_size)
+			d = np.sum(np.exp(-2*blk*ek_))
+			sum_ += d
+			if d/(sum_ + TINY) < EPS:
+				return sum_
+		raise RuntimeWarning("calc_sexp did not converge in {} steps".format(MAXITER))
+
+	def ifb3(self, s, xis, xjs, xj1s, xed, dyds):
+		return self.ifb3_1(s, xis, xjs, xj1s, xed, dyds) + self.ifb3_2(s, xjs, xj1s, xed, dyds)
+
+	def ifb3_1(self, s, xis, xjs, xj1s, xed, dyds, debug=False):
+		KMAX = 100
+		EPS = 1e-12
+		TINY = 1e-20
+		sum_ = self.ifb3_k(s, 0, xis, xjs, xj1s, xed, dyds)
+		for k in range(1, KMAX):
+			d = self.ifb3_k(s, k, xis, xjs, xj1s, xed, dyds)
+			d += self.ifb3_k(s, -k, xis, xjs, xj1s, xed, dyds)
+			sum_ += d
+			if np.max(d)/(np.min(sum_) + TINY) < EPS:
+				if debug:
+					return sum_, k
+				else:
+					return sum_
+		raise RuntimeWarning("ifb3_1 did not converge in {} steps".format(KMAX))
+
+	def ifb3_2(self, s, xjs, xj1s, xed, dyds):
+		su = (s*self.f_s(s))**0.5
+		return -0.5*np.pi/xed/su*(xj1s - xjs)*np.exp(-su*dyds)
 
 	def ifb3_k(self, s, k, xis, xjs, xj1s, xed, dyds):
 		su = (s*self.f_s(s))**0.5
@@ -38,25 +119,25 @@ class LaplSource():
 		xis_0, xjs_0, xj1s_0 = fxis[inds_0], fxjs[inds_0], fxj1s[inds_0]
 		xis_nnz, xjs_nnz, xj1s_nnz = fxis[inds_nnz], fxjs[inds_nnz], fxj1s[inds_nnz]
 		if len(inds_0) > 0:
-			a1 = su*(xjs_0 + xis_0 - 2*k*xed)
-			b1 = su*(xj1s_0 + xis_0 - 2*k*xed)
-			a2 = su*(xjs_0 - xis_0 - 2*k*xed)
-			b2 = su*(xj1s_0 - xis_0 - 2*k*xed)
-			s1 = 1 - 2*(a1 > 0.)
-			s2 = 1 - 2*(b1 < 0.)
-			s3 = 1 - 2*(a2 > 0.)
-			s4 = 1 - 2*(b2 < 0.)
-			a1 = np.round(np.abs(a1), decimals=6)
-			b1 = np.round(np.abs(b1), decimals=6)
-			a2 = np.round(np.abs(a2), decimals=6)
-			b2 = np.round(np.abs(b2), decimals=6)
+			a1_ = su*(xjs_0 + xis_0 - 2*k*xed)
+			b1_ = su*(xj1s_0 + xis_0 - 2*k*xed)
+			a2_ = su*(xjs_0 - xis_0 - 2*k*xed)
+			b2_ = su*(xj1s_0 - xis_0 - 2*k*xed)
+			s1 = 1 - 2*(a1_ > 0.)
+			s2 = 1 - 2*(b1_ < 0.)
+			s3 = 1 - 2*(a2_ > 0.)
+			s4 = 1 - 2*(b2_ < 0.)
+			a1 = np.round(np.abs(a1_), decimals=6)
+			b1 = np.round(np.abs(b1_), decimals=6)
+			a2 = np.round(np.abs(a2_), decimals=6)
+			b2 = np.round(np.abs(b2_), decimals=6)
 			u1, i1 = np.unique(a1, return_inverse = True)
 			u2, i2 = np.unique(b1, return_inverse = True)
 			u3, i3 = np.unique(a2, return_inverse = True)
 			u4, i4 = np.unique(b2, return_inverse = True)
 			ua = np.concatenate((u1, u2, u3, u4))
 			u, i = np.unique(ua, return_inverse = True)
-			va = 1./su/xed*iti0k0(u)[1][i]
+			va = 0.5/su*iti0k0(u)[1][i]
 			v1 = va[:len(u1)][i1]
 			v2 = va[len(u1):len(u1)+len(u2)][i2]
 			v3 = va[len(u1)+len(u2):len(u1)+len(u2)+len(u3)][i3]
@@ -66,29 +147,6 @@ class LaplSource():
 			raise NotImplementedError
 		return ans.reshape(orig_shape)
 
-	def ifb3_1(self, s, xis, xjs, xj1s, xed, dyds, debug=False):
-		KMAX = 100
-		EPS = 1e-12
-		TINY = 1e-20
-		sum_ = self.ifb3_k(s, 0, xis, xjs, xj1s, xed, dyds)
-		for k in range(1, KMAX):
-			d = self.ifb3_k(s, k, xis, xjs, xj1s, xed, dyds)
-			d += self.ifb3_k(s, -k, xis, xjs, xj1s, xed, dyds)
-			sum_ += d
-		if np.max(d)/(np.min(sum_) + TINY) < EPS:
-			if debug:
-				return (0.5*sum_, k)
-			else:
-				return 0.5*sum_
-		raise RuntimeWarning("ifb3_1 did not converge in {} steps".format(KMAX))
-
-	def ifb3_2(self, s, xjs, xj1s, xed, dyds):
-		su = (s*self.f_s(s))**0.5
-		return -0.5*np.pi/xed/su*(xj1s - xjs)*np.exp(-su*dyds)
-
-	def ifb3(self, s, xis, xjs, xj1s, xed, dyds):
-		return self.ifb3_1(s, xis, xjs, xj1s, xed, dyds) + self.ifb3_2(s, xjs, xj1s, xed, dyds)
-
 	def integrate_source_functions(self, s, lims1, lims2, dyds, int_type = "quad", npoints = 5):
 		fs = self.f_s(s)
 		su = (s*fs)**0.5
@@ -96,7 +154,7 @@ class LaplSource():
 		assert len(lims1) == len(lims2) == len(dyds)
 		ans = np.zeros_like(lims1)
 		if self.well.wtype == "frac":
-			if self.well.boundaries == "infinite":
+			if self.well.outer_bound == "infinite":
 				dyds_0_inds = np.argwhere(dyds==0.).flatten()
 				dyds_nnz_inds = np.argwhere(dyds!=0.).flatten()
 				# calcculate for zero dyds:
@@ -115,7 +173,7 @@ class LaplSource():
 						raise ArgumentError("int type should be 'quad' or 'fixed_quad'")
 					nnz_items = np.hstack([lims1[dyds_nnz_inds].reshape(-1,1), lims2[dyds_nnz_inds].reshape(-1,1), dyds[dyds_nnz_inds].reshape(-1,1)])
 					ans[dyds_nnz_inds] = np.apply_along_axis(g, 1, nnz_items)
-			elif self.well.boundaries == "nnnn":
+			elif self.well.outer_bound== "nnnn":
 				raise NotImplementedError
 		else:
 			raise NotImplementedError

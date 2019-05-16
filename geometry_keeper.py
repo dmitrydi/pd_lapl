@@ -21,6 +21,7 @@ class GeometryKeeper:
 		gdict["mxj"] = np.array(m_xj1 + xwd)
 		gdict["mxj1"] = np.array(m_xj2 + xwd)
 		gdict["myd"] = np.array(np.abs(np.matrix((yd - ywd)*np.ones_like(m_xd))))
+		gdict["myd_"] = np.array(np.matrix(yd *np.ones_like(m_xd)))
 		gdict["lims1"] = np.round(m_xd - c*m_xj1 - xwd, decimals=ndigits) # lower limits of integration within fracture: lims1[i, j] = dx*(i+0.5) - dx*(j-1)
 		gdict["lims2"] = np.round(m_xd - c*m_xj2 - xwd, decimals=ndigits) # upper limits of integration within fracture: lims2[i, j] = dx*(i+0.5) - dx*j
 		gdict["mask_int_1"] = np.matrix(np.ones((2*N, 2*N)), dtype=np.float) - 2*(gdict["lims1"] < 0) # mask for selecting sign for integrals of lims1 and lims 2

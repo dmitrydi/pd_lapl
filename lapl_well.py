@@ -75,11 +75,21 @@ class LaplWell():
 	def get_green_matrix(self, s):
 		if self.wtype == "frac":
 			#unique_integrals = self.source.calc_source_funcs(s)
-			unique_integrals = self.source.integrate_source_functions(s,
-				np.zeros_like(self.gk["ulims"], dtype=np.float),
-				self.gk["ulims"],
-				np.zeros_like(self.gk["ulims"], dtype=np.float))
-			green_matrix = self.combine_green_matrix(unique_integrals)
+			if self.outer_bound == "infinite":
+				unique_integrals = self.source.integrate_source_functions(s,
+					np.zeros_like(self.gk["ulims"], dtype=np.float),
+					self.gk["ulims"],
+					np.zeros_like(self.gk["ulims"], dtype=np.float))
+				green_matrix = self.combine_green_matrix(unique_integrals)
+			elif self.outer_bound == "nnnn":
+				green_matrix = self.source.integrate_source_functions_bounded(s,
+					self.gk["mxd"],
+					self.gk["mxj"],
+					self.gk["mxj1"],
+					self.params["xed"],
+					self.gk["myd_"],
+					self.ywd,
+					self.params["yed"])
 		else:
 			raise NotImplementedError
 		return green_matrix
