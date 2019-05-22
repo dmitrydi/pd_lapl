@@ -53,7 +53,7 @@ class LaplSource():
 			for k in blk:
 				d += self.ifb2_k(k, u, xis, xjs, xj1s, xed, yds, ywd, yed)
 			sum_ += d
-			if np.mean(np.abs(d))/(np.mean(np.abs(sum_))+TINY) < EPS:
+			if np.mean(np.abs(d))/(np.mean(np.abs(sum_))+TINY)  < EPS and i > 3:
 				if debug:
 					return sum_, i*blk_size
 				else:

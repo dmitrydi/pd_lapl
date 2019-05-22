@@ -1,18 +1,19 @@
 import numpy as np
-from sources import Sources
-from matrixizer import *
-from integrator import *
+from .sources import Sources
+from .matrixizer import Matrixizer
+from .integrator import *
+from .helper import make_offset
 
 class LaplWell():
 	"""class for lapl well"""
 	def __init__(self, outer_bound, top_bound, bottom_bound,
 		wtype, nseg, nwells, xwds, ywds, x_lengths = 1,
-		xed = None, yed = None, zwds = None, hd = None, attrs = {}):
+		xed = 0, yed = 0, zwds = None, hd = 0, attrs = {}):
 	# attrs keeps Fcd etc.
 		# check initialization
 		if outer_bound != "inf":
-			assert xed is not None
-			assert yed is not None
+			assert xed != 0
+			assert yed != 0
 		if wtype == "horiz":
 			assert zwds is not None
 			assert hd is not None
@@ -44,22 +45,21 @@ class LaplWell():
 														top_bound,
 														bottom_bound,
 														nseg))
-		self.sources_["mx"] = make_matrices_for_integration(self.sources_["sources_list"])
-		self.dummy_matrix = make_dummy_matrix(self.sources_["sources_list"])
-		self.source_matrix = make_source_matrix(self.sources_["sources_list"], self.sources_["wtype"], self.sources_["attrs"])
-		self.dummy_rhv  = make_dummy_rhv(self.sources_["sources_list"], self.sources_["wtype"], self.sources_["attrs"])
+		self.matrixizer = Matrixizer(self.sources_)
 
 	def recalc(self, s):
 		u = s #!
-		green_matrix_ = integrate_sources_for_green_matrix(*self.sources_["mx"],
-			self.sources_["boundaries"],
-			self.sources_["wtype"])
-		green_matrix = make_offset(green_matrix_)
-		solution = np.linalg.solve(self.dummy_matrix + self.source_matrix - green_matrix, rhv/u)
+		green_matrix_ = integrate_sources_for_green_matrix(u, self.matrixizer, self.sources_)
+		self.green_matrix = make_offset(green_matrix_)
+		solution = np.linalg.solve(self.matrixizer.dummy_m + self.matrixizer.source_m - self.green_matrix, self.matrixizer.dummy_rhv/u)
 		self.pw_lapl = solution[0]
 		self.qw_lapl = 1/s/s/self.pw_lapl
 		self.Q_lapl = self.qw_lapl/s
 		self.q_distrib  = solution[1:]
+
+	def pw(self, s):
+		self.recalc(s)
+		return self.pw_lapl
 
 
 
