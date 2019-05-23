@@ -1,4 +1,4 @@
 .ipynb_checkpoints/*
 __pycache__/*
 *.xl*
-*/__pycache__/*
+**/__pycache__/*
