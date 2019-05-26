@@ -1,7 +1,8 @@
 import numpy as np
 from .common import i_frac_0, i_frac_nnz
+from .cy.integrate_dyd_nnz import cy_reconstruct_dyd_nnz 
 
-def integrate_matrix(u, matrixizer, sources):
+def integrate_matrix(u, matrixizer, sources, version='old'):
     xed = sources["sources_list"][0].xed
     yed = sources["sources_list"][0].yed
     if "fb_1_2_nnnn" not in matrixizer.m_cache.keys():
@@ -9,7 +10,7 @@ def integrate_matrix(u, matrixizer, sources):
     arg_x_0, arg_x_1, arg_x_2, arg_x_3, arg_y_1, arg_y_2, arg_y_3, arg_y_4 = matrixizer.m_cache["fb_1_2_nnnn"]
     # (x1js - xjs), np.pi*xis/xed, np.pi/2./xed*arg_x_0, np.pi/2./xed*(2*xis - (xjs + xj1s)), yds+yws, yed+yd1_w, yed+yd2_w, np.abs(yds-ywd)
     i1 = ifb1(u, arg_x_0, arg_y_1, arg_y_2, arg_y_3, arg_y_4, xed, yed)
-    i3 = ifb3(u, matrixizer, sources, arg_x_0, arg_y_4, xed)
+    i3 = ifb3(u, matrixizer, sources, arg_x_0, arg_y_4, xed, version)
     dlm = np.min([np.linalg.norm(i1), np.linalg.norm(i3)])
     i2 = ifb2(u, arg_x_1, arg_x_2, arg_x_3, arg_y_1, arg_y_2, arg_y_3, arg_y_4, xed, yed, dlm = dlm)
     
@@ -53,20 +54,22 @@ def ifb2_k(k, u, arg_x_1, arg_x_2, arg_x_3, arg_y_1, arg_y_2, arg_y_3, arg_y_4, 
     p1 *= (np.exp(-ek*arg_y_1) + np.exp(-ek*arg_y_2) + np.exp(-ek*arg_y_3))*(1 + sexp) + np.exp(-ek*arg_y_4)*sexp # arg_y_1, arg_y_2, arg_y3, arg_y_4
     return p1
 
-def ifb3(u, matrixizer, sources, arg_x_0, arg_y_4, xed):
-    return ifb3_1(u, matrixizer, sources) + ifb3_2(u, arg_x_0, arg_y_4, xed)
+def ifb3(u, matrixizer, sources, arg_x_0, arg_y_4, xed, version='old'):
+    a = ifb3_1(u, matrixizer, sources, debug = False, version=version)
+    b = ifb3_2(u, arg_x_0, arg_y_4, xed)
+    return a + b
 
-def ifb3_1(u, matrixizer, sources, debug=False):
+def ifb3_1(u, matrixizer, sources, debug=False, version='old'):
     KMAX = 100
     EPS = 1e-12
     TINY = 1e-20
-    sum_ = ifb3_k(u, 0, "-", matrixizer, sources)
-    sum_ += ifb3_k(u, 0, "+", matrixizer, sources)
+    sum_ = ifb3_k(u, 0, "-", matrixizer, sources, version)
+    sum_ += ifb3_k(u, 0, "+", matrixizer, sources, version)
     for k in range(1, KMAX):
-        d = ifb3_k(u, k, "-", matrixizer, sources)
-        d += ifb3_k(u, k, "+", matrixizer, sources)
-        d += ifb3_k(u, -k, "-", matrixizer, sources)
-        d += ifb3_k(u, -k, "+", matrixizer, sources)
+        d = ifb3_k(u, k, "-", matrixizer, sources, version)
+        d += ifb3_k(u, k, "+", matrixizer, sources, version)
+        d += ifb3_k(u, -k, "-", matrixizer, sources, version)
+        d += ifb3_k(u, -k, "+", matrixizer, sources, version)
         sum_ += d
         if np.linalg.norm(d)/(np.linalg.norm(sum_) + TINY) < EPS:
             if debug:
@@ -75,7 +78,7 @@ def ifb3_1(u, matrixizer, sources, debug=False):
                 return sum_
     raise RuntimeWarning("ifb3_1 did not converge in {} steps".format(KMAX))
 
-def ifb3_k(u, k, sign, matrixizer, sources):
+def ifb3_k(u, k, sign, matrixizer, sources, version='old'):
     N = sources["sources_list"][0].nseg
     M = len(sources["sources_list"])
     orig_shape = (2*N*M, 2*N*M)
@@ -89,14 +92,18 @@ def ifb3_k(u, k, sign, matrixizer, sources):
         vals_dyds_0 = i_frac_0(unique_lims_dyd_0, su)
         matrixizer.reconstruct_dyds_0(m, inds_dyds_0, vals_dyds_0, inverse_inds_dyd_0, len_alims1, mask1, mask2)
     if inds_dyds_nnz is not None:
-        f = lambda t: i_frac_nnz(t, su)
-        vals_dyds_nnz = np.apply_along_axis(f, 1, unique_lims_dyd_nnz)
-        matrixizer.reconstruct_dyds_nnz(m, inds_dyds_nnz, vals_dyds_nnz, inverse_inds_dyd_nnz)
+        if version == 'old':
+            f = lambda t: i_frac_nnz(t, su)
+            vals_dyds_nnz = np.apply_along_axis(f, 1, unique_lims_dyd_nnz)
+            matrixizer.reconstruct_dyds_nnz(m, inds_dyds_nnz, vals_dyds_nnz, inverse_inds_dyd_nnz)
+        elif version == 'new':
+            m = cy_reconstruct_dyd_nnz(su, m, inds_dyds_nnz, unique_lims_dyd_nnz, inverse_inds_dyd_nnz)
     return m
 
 def ifb3_2(u, arg_x_0, arg_y_4, xed):
     su = u**0.5
-    return -0.5*np.pi/xed/su*arg_x_0*np.exp(-su*arg_y_4)
+    m = -0.5*np.pi/xed/su*arg_x_0*np.exp(-su*arg_y_4)
+    return m
 
 def calc_sexp(ek, yed):
     ek_ = ek*yed

@@ -154,7 +154,7 @@ class Matrixizer():
                 len_alims1 = len(alims1[inds_dyds_0])
                 all_lims_dyd_0 = np.concatenate((alims1[inds_dyds_0], alims2[inds_dyds_0]))
                 unique_lims_dyd_0, inverse_inds_dyd_0 = np.unique(all_lims_dyd_0, return_inverse = True)
-                self.m_cache["dyds_0"][str(k) + sign] = (inds_dyds_0, unique_lims_dyd_0, inverse_inds_dyd_0, len_alims1, mask1, mask2)
+                self.m_cache["dyds_0"][str(k) + sign] = (inds_dyds_0.astype(int), unique_lims_dyd_0, inverse_inds_dyd_0.astype(int), len_alims1, mask1, mask2)
             else:
                 self.m_cache["dyds_0"][str(k) + sign] = (None, None, None, None, None, None)
             # deal with dyds != 0:
@@ -164,7 +164,7 @@ class Matrixizer():
                 upper_lims = np.max(all_lims_dyd_nnz[:,:2], axis=1).reshape(-1, 1)
                 upper_lims_dyds = np.hstack([upper_lims, all_lims_dyd_nnz[:, -1].reshape(-1,1), dyds[inds_dyds_nnz].reshape(-1, 1)]) #(x_upper, dx, dyd)
                 unique_lims_dyd_nnz, inverse_inds_dyd_nnz = np.unique(upper_lims_dyds, axis=0, return_inverse=True)
-                self.m_cache["dyds_nnz"][str(k) + sign] = (inds_dyds_nnz, unique_lims_dyd_nnz, inverse_inds_dyd_nnz)
+                self.m_cache["dyds_nnz"][str(k) + sign] = (inds_dyds_nnz.astype(int), unique_lims_dyd_nnz, inverse_inds_dyd_nnz.astype(int))
             else:
                 self.m_cache["dyds_nnz"][str(k) + sign] = (None, None, None)
         else:
