@@ -46,6 +46,7 @@ class LaplWell():
                                                         bottom_bound,
                                                         nseg))
         self.matrixizer = Matrixizer(self.sources_)
+        self.last_s = -1
 
     def recalc(self, s):
         u = s #!
@@ -58,8 +59,20 @@ class LaplWell():
         self.q_distrib  = solution[1:]
 
     def pw(self, s):
-        self.recalc(s)
+        if s != self.last_s:
+            self.recalc(s)
         return self.pw_lapl
+
+    def pxy(self, s, xd, yd, cache=False):
+        if s != self.last_s:
+            self.recalc(s)
+        if str(xd)+"_"+str(yd) not in self.matrixizer.v_cache:
+            self.matrixizer.v_cache[str(xd)+"_"+str(yd)] = {"dyds_0": {}, "dyds_nnz": {}}
+        v = integrate_matrix_for_xd_yd(s, xd, yd, self.matrixizer.v_cache[str(xd)+"_"+str(yd)], self.matrixizer, self.sources_)
+        if not cache:
+            del self.matrixizer.v_cache[str(xd)+"_"+str(yd)]
+        return np.sum(v*self.q_distrib)
+
 
 
 

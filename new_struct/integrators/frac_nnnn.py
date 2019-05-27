@@ -15,7 +15,7 @@ def integrate_matrix_(u, buf_k, buf_fb_1_2, xed, yed, xis_, xjs_, xj1s_, yws_, y
     arg_x_0, arg_x_1, arg_x_2, arg_x_3, arg_y_1, arg_y_2, arg_y_3, arg_y_4 = buf_fb_1_2["fb_1_2_nnnn"+xd_id]
     i1 = ifb1(u, arg_x_0, arg_y_1, arg_y_2, arg_y_3, arg_y_4, xed, yed)
     i2 = ifb2(u, arg_x_1, arg_x_2, arg_x_3, arg_y_1, arg_y_2, arg_y_3, arg_y_4, xed, yed)
-    i3 = ifb3_(buf_k, u, xed, yed, xis_, xjs_, xj1s_, yws_, yds_, zws_, zds_, arg_x_0, arg_y_4)
+    i3 = ifb3_(buf_k, u, xed, yed, xis_, xjs_, xj1s_, yws_, yds_, zws_, zds_, arg_x_0, arg_y_4, xd_id)
     return i1 + i2 + i3
 
 def ifb1(u, arg_x_0, arg_y_1, arg_y_2, arg_y_3, arg_y_4, xed, yed):
@@ -56,22 +56,22 @@ def ifb2_k(k, u, arg_x_1, arg_x_2, arg_x_3, arg_y_1, arg_y_2, arg_y_3, arg_y_4, 
     p1 *= (np.exp(-ek*arg_y_1) + np.exp(-ek*arg_y_2) + np.exp(-ek*arg_y_3))*(1 + sexp) + np.exp(-ek*arg_y_4)*sexp # arg_y_1, arg_y_2, arg_y3, arg_y_4
     return p1
 
-def ifb3_(buf, u, xed, yed, xis_, xjs_, xj1s_, yws_, yds_, zws_, zds_, arg_x_0, arg_y_4):
-    a = ifb3_1_(buf, u, xed, yed, xis_, xjs_, xj1s_, yws_, yds_, zws_, zds_)
+def ifb3_(buf, u, xed, yed, xis_, xjs_, xj1s_, yws_, yds_, zws_, zds_, arg_x_0, arg_y_4, xd_yd_id=''):
+    a = ifb3_1_(buf, u, xed, yed, xis_, xjs_, xj1s_, yws_, yds_, zws_, zds_, xd_yd_id)
     b = ifb3_2(u, arg_x_0, arg_y_4, xed)
     return a + b
 
-def ifb3_1_(buf, u, xed, yed, xis_, xjs_, xj1s_, yws_, yds_, zws_, zds_, debug=False):
+def ifb3_1_(buf, u, xed, yed, xis_, xjs_, xj1s_, yws_, yds_, zws_, zds_, xd_yd_id = '', debug=False):
     KMAX = 100
     EPS = 1e-12
     TINY = 1e-20
-    sum_ = ifb3_k_(buf, u, 0, "-", xed, yed, xis_, xjs_, xj1s_, yws_, yds_, zws_, zds_)
-    sum_ += ifb3_k_(buf, u, 0, "+", xed, yed, xis_, xjs_, xj1s_, yws_, yds_, zws_, zds_)
+    sum_ = ifb3_k_(buf, u, 0, "-", xed, yed, xis_, xjs_, xj1s_, yws_, yds_, zws_, zds_, xd_yd_id)
+    sum_ += ifb3_k_(buf, u, 0, "+", xed, yed, xis_, xjs_, xj1s_, yws_, yds_, zws_, zds_, xd_yd_id)
     for k in range(1, KMAX):
-        d = ifb3_k_(buf, u, k, "-", xed, yed, xis_, xjs_, xj1s_, yws_, yds_, zws_, zds_)
-        d += ifb3_k_(buf, u, k, "+", xed, yed, xis_, xjs_, xj1s_, yws_, yds_, zws_, zds_)
-        d += ifb3_k_(buf, u, -k, "-", xed, yed, xis_, xjs_, xj1s_, yws_, yds_, zws_, zds_)
-        d += ifb3_k_(buf, u, -k, "+", xed, yed, xis_, xjs_, xj1s_, yws_, yds_, zws_, zds_)
+        d = ifb3_k_(buf, u, k, "-", xed, yed, xis_, xjs_, xj1s_, yws_, yds_, zws_, zds_, xd_yd_id)
+        d += ifb3_k_(buf, u, k, "+", xed, yed, xis_, xjs_, xj1s_, yws_, yds_, zws_, zds_, xd_yd_id)
+        d += ifb3_k_(buf, u, -k, "-", xed, yed, xis_, xjs_, xj1s_, yws_, yds_, zws_, zds_, xd_yd_id)
+        d += ifb3_k_(buf, u, -k, "+", xed, yed, xis_, xjs_, xj1s_, yws_, yds_, zws_, zds_, xd_yd_id)
         sum_ += d
         if np.linalg.norm(d)/(np.linalg.norm(sum_) + TINY) < EPS:
             if debug:
@@ -80,11 +80,11 @@ def ifb3_1_(buf, u, xed, yed, xis_, xjs_, xj1s_, yws_, yds_, zws_, zds_, debug=F
                 return sum_
     raise RuntimeWarning("ifb3_1 did not converge in {} steps".format(KMAX))
 
-def ifb3_k_(buf, u, k, sign, xed, yed, xis_, xjs_, xj1s_, yws_, yds_, zws_, zds_):
+def ifb3_k_(buf, u, k, sign, xed, yed, xis_, xjs_, xj1s_, yws_, yds_, zws_, zds_, xd_yd_id=''):
     orig_shape = xis_.shape
     m = np.zeros(orig_shape, dtype=np.float)
     if str(k)+sign not in buf["dyds_0"].keys():
-        make_calc_matr_(buf, xed, yed, sign, k, xis_, xjs_, xj1s_, yws_, yds_, zws_, zds_)
+        make_calc_matr_(buf, xed, yed, sign, k, xis_, xjs_, xj1s_, yws_, yds_, zws_, zds_, xd_yd_id)
     inds_dyds_0, unique_lims_dyd_0, inverse_inds_dyd_0, len_alims1, mask1, mask2 = buf["dyds_0"][str(k)+sign]
     inds_dyds_nnz, unique_lims_dyd_nnz, inverse_inds_dyd_nnz = buf["dyds_nnz"][str(k)+sign]
     su = np.sqrt(u)

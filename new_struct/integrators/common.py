@@ -14,7 +14,7 @@ def i_frac_nnz(x, su):
 def frac_fun(x, dyd, su):
     return 0.5/su*k0((x*x + su*su*dyd*dyd)**0.5)
 
-def make_calc_matr_(buf, xed, yed, sign, k, xis_, xjs_, xj1s_, yws_, yds_, zws_, zds_):
+def make_calc_matr_(buf, xed, yed, sign, k, xis_, xjs_, xj1s_, yws_, yds_, zws_, zds_, xd_yd_id=''):
     if sign == "+":
         s_ = 1
     elif sign == "-":
@@ -44,9 +44,9 @@ def make_calc_matr_(buf, xed, yed, sign, k, xis_, xjs_, xj1s_, yws_, yds_, zws_,
         len_alims1 = len(alims1[inds_dyds_0])
         all_lims_dyd_0 = np.concatenate((alims1[inds_dyds_0], alims2[inds_dyds_0]))
         unique_lims_dyd_0, inverse_inds_dyd_0 = np.unique(all_lims_dyd_0, return_inverse = True)
-        buf["dyds_0"][str(k) + sign] = (inds_dyds_0, unique_lims_dyd_0, inverse_inds_dyd_0, len_alims1, mask1, mask2)
+        buf["dyds_0"][str(k) + sign + xd_yd_id] = (inds_dyds_0, unique_lims_dyd_0, inverse_inds_dyd_0, len_alims1, mask1, mask2)
     else:
-        buf["dyds_0"][str(k) + sign] = (None, None, None, None, None, None)
+        buf["dyds_0"][str(k) + sign + xd_yd_id] = (None, None, None, None, None, None)
     # deal with dyds != 0:
     if len(inds_dyds_nnz) > 0:
         alims1_nnz, alims2_nnz = alims1[inds_dyds_nnz], alims2[inds_dyds_nnz]
@@ -54,6 +54,6 @@ def make_calc_matr_(buf, xed, yed, sign, k, xis_, xjs_, xj1s_, yws_, yds_, zws_,
         upper_lims = np.max(all_lims_dyd_nnz[:,:2], axis=1).reshape(-1, 1)
         upper_lims_dyds = np.hstack([upper_lims, all_lims_dyd_nnz[:, -1].reshape(-1,1), dyds[inds_dyds_nnz].reshape(-1, 1)]) #(x_upper, dx, dyd)
         unique_lims_dyd_nnz, inverse_inds_dyd_nnz = np.unique(upper_lims_dyds, axis=0, return_inverse=True)
-        buf["dyds_nnz"][str(k) + sign] = (inds_dyds_nnz, unique_lims_dyd_nnz, inverse_inds_dyd_nnz)
+        buf["dyds_nnz"][str(k) + sign + xd_yd_id] = (inds_dyds_nnz, unique_lims_dyd_nnz, inverse_inds_dyd_nnz)
     else:
-        buf["dyds_nnz"][str(k) + sign] = (None, None, None)
+        buf["dyds_nnz"][str(k) + sign + xd_yd_id] = (None, None, None)

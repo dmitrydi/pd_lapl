@@ -8,6 +8,7 @@ class Matrixizer():
         self.source_m = self.make_source_matr(sources)
         self.dummy_rhv = self.make_dummy_rhv(sources)
         self.m_cache = {"dyds_0": {}, "dyds_nnz": {}}
+        self.v_cache = {}
 
     def make_raw_matr(self, sources):
         sources_list = sources["sources_list"]

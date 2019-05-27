@@ -14,3 +14,8 @@ class Well():
         f = self.lapl_well.pw
         return lapl_invert(f, t, self.stehf_coefs)
 
+    def pxy(self, t, xd, yd, cache=False):
+        f = lambda p: self.lapl_well.pxy(p, xd, yd, cache)
+        return lapl_invert(f, t, self.stehf_coefs)
+
+
