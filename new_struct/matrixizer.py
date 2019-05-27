@@ -1,6 +1,5 @@
 import numpy as np
 from scipy.linalg import block_diag
-NDIGITS = 6
 
 class Matrixizer():
     def __init__(self, sources):
@@ -119,85 +118,87 @@ class Matrixizer():
             rhv = np.append(rhv, 2./dx)
         return rhv
 
-    def make_calc_matr(self, sources, sign, k):
-        if sign == "+":
-            s_ = 1
-        elif sign == "-":
-            s_ = -1
-        else:
-            raise ValueError
-        xed = sources["sources_list"][0].xed
-        yed = sources["sources_list"][0].yed
-        wtype = sources["wtype"]
-        xis, xjs, xj1s, yws, yds, zws, zds = self.raw
-        orig_shape = xis.shape
-        xis = xis.flatten()
-        xjs = xjs.flatten()
-        xj1s = xj1s.flatten()
-        yws = yws.flatten()
-        yds = yds.flatten()
-        zws = zws.flatten()
-        zds = zds.flatten()
-        if wtype == "frac":
-            dyds = np.round(np.abs(yds - yws), decimals = NDIGITS)
-            lims1 = np.round(xjs + s_*xis - 2*k*xed, decimals = NDIGITS)
-            lims2 = np.round(xj1s + s_*xis - 2*k*xed, decimals = NDIGITS)
-            #dlims = lims2 - lims1
-            alims1 = np.abs(lims1)
-            alims2 = np.abs(lims2)
-            inds_dyds_nnz = np.argwhere(dyds != 0.).flatten()
-            inds_dyds_0 = np.argwhere(dyds == 0.).flatten()
-            # deal with dyds == 0:
-            if len(inds_dyds_0) > 0:
-                mask1 = 1 - 2*(lims1[inds_dyds_0] > 0.)
-                mask2 = 1 - 2*(lims2[inds_dyds_0] < 0.)
-                len_alims1 = len(alims1[inds_dyds_0])
-                all_lims_dyd_0 = np.concatenate((alims1[inds_dyds_0], alims2[inds_dyds_0]))
-                unique_lims_dyd_0, inverse_inds_dyd_0 = np.unique(all_lims_dyd_0, return_inverse = True)
-                self.m_cache["dyds_0"][str(k) + sign] = (inds_dyds_0, unique_lims_dyd_0, inverse_inds_dyd_0, len_alims1, mask1, mask2)
-            else:
-                self.m_cache["dyds_0"][str(k) + sign] = (None, None, None, None, None, None)
-            # deal with dyds != 0:
-            if len(inds_dyds_nnz) > 0:
-                alims1_nnz, alims2_nnz = alims1[inds_dyds_nnz], alims2[inds_dyds_nnz]
-                all_lims_dyd_nnz = np.vstack([alims1_nnz, alims2_nnz, lims2[inds_dyds_nnz] - lims1[inds_dyds_nnz]]).T # (|lims1|, |lims2|, lims2 - lims1)
-                upper_lims = np.max(all_lims_dyd_nnz[:,:2], axis=1).reshape(-1, 1)
-                upper_lims_dyds = np.hstack([upper_lims, all_lims_dyd_nnz[:, -1].reshape(-1,1), dyds[inds_dyds_nnz].reshape(-1, 1)]) #(x_upper, dx, dyd)
-                unique_lims_dyd_nnz, inverse_inds_dyd_nnz = np.unique(upper_lims_dyds, axis=0, return_inverse=True)
-                self.m_cache["dyds_nnz"][str(k) + sign] = (inds_dyds_nnz, unique_lims_dyd_nnz, inverse_inds_dyd_nnz)
-            else:
-                self.m_cache["dyds_nnz"][str(k) + sign] = (None, None, None)
-        else:
-                raise NotImplementedError
+    # def make_calc_matr(self, sources, sign, k):
+    #     if sign == "+":
+    #         s_ = 1
+    #     elif sign == "-":
+    #         s_ = -1
+    #     else:
+    #         raise ValueError
+    #     xed = sources["sources_list"][0].xed
+    #     yed = sources["sources_list"][0].yed
+    #     wtype = sources["wtype"]
+    #     xis, xjs, xj1s, yws, yds, zws, zds = self.raw
+    #     orig_shape = xis.shape
+    #     xis = xis.flatten()
+    #     xjs = xjs.flatten()
+    #     xj1s = xj1s.flatten()
+    #     yws = yws.flatten()
+    #     yds = yds.flatten()
+    #     zws = zws.flatten()
+    #     zds = zds.flatten()
+    #     if wtype == "frac":
+    #         dyds = np.round(np.abs(yds - yws), decimals = NDIGITS)
+    #         lims1 = np.round(xjs + s_*xis - 2*k*xed, decimals = NDIGITS)
+    #         lims2 = np.round(xj1s + s_*xis - 2*k*xed, decimals = NDIGITS)
+    #         #dlims = lims2 - lims1
+    #         alims1 = np.abs(lims1)
+    #         alims2 = np.abs(lims2)
+    #         inds_dyds_nnz = np.argwhere(dyds != 0.).flatten()
+    #         inds_dyds_0 = np.argwhere(dyds == 0.).flatten()
+    #         # deal with dyds == 0:
+    #         if len(inds_dyds_0) > 0:
+    #             mask1 = 1 - 2*(lims1[inds_dyds_0] > 0.)
+    #             mask2 = 1 - 2*(lims2[inds_dyds_0] < 0.)
+    #             len_alims1 = len(alims1[inds_dyds_0])
+    #             all_lims_dyd_0 = np.concatenate((alims1[inds_dyds_0], alims2[inds_dyds_0]))
+    #             unique_lims_dyd_0, inverse_inds_dyd_0 = np.unique(all_lims_dyd_0, return_inverse = True)
+    #             self.m_cache["dyds_0"][str(k) + sign] = (inds_dyds_0, unique_lims_dyd_0, inverse_inds_dyd_0, len_alims1, mask1, mask2)
+    #         else:
+    #             self.m_cache["dyds_0"][str(k) + sign] = (None, None, None, None, None, None)
+    #         # deal with dyds != 0:
+    #         if len(inds_dyds_nnz) > 0:
+    #             alims1_nnz, alims2_nnz = alims1[inds_dyds_nnz], alims2[inds_dyds_nnz]
+    #             all_lims_dyd_nnz = np.vstack([alims1_nnz, alims2_nnz, lims2[inds_dyds_nnz] - lims1[inds_dyds_nnz]]).T # (|lims1|, |lims2|, lims2 - lims1)
+    #             upper_lims = np.max(all_lims_dyd_nnz[:,:2], axis=1).reshape(-1, 1)
+    #             upper_lims_dyds = np.hstack([upper_lims, all_lims_dyd_nnz[:, -1].reshape(-1,1), dyds[inds_dyds_nnz].reshape(-1, 1)]) #(x_upper, dx, dyd)
+    #             unique_lims_dyd_nnz, inverse_inds_dyd_nnz = np.unique(upper_lims_dyds, axis=0, return_inverse=True)
+    #             self.m_cache["dyds_nnz"][str(k) + sign] = (inds_dyds_nnz, unique_lims_dyd_nnz, inverse_inds_dyd_nnz)
+    #         else:
+    #             self.m_cache["dyds_nnz"][str(k) + sign] = (None, None, None)
+    #     else:
+    #             raise NotImplementedError
 
-    def reconstruct_dyds_0(self, m, inds_dyds_0, unique_vals, inverse_inds_dyd_0, len_alims1, mask1, mask2):
-        orig_shape = m.shape
-        m = m.reshape(-1)
-        v = unique_vals[inverse_inds_dyd_0]
-        v1 = v[:len_alims1]
-        v2 = v[len_alims1:]
-        m[inds_dyds_0] = v1*mask1 + v2*mask2
-        m = m.reshape(orig_shape)
+    # def reconstruct_dyds_0(self, m, inds_dyds_0, unique_vals, inverse_inds_dyd_0, len_alims1, mask1, mask2):
+    #     orig_shape = m.shape
+    #     m = m.reshape(-1)
+    #     v = unique_vals[inverse_inds_dyd_0]
+    #     v1 = v[:len_alims1]
+    #     v2 = v[len_alims1:]
+    #     m[inds_dyds_0] = v1*mask1 + v2*mask2
+    #     m = m.reshape(orig_shape)
 
-    def reconstruct_dyds_nnz(self, m, inds_dyds_nnz, unique_vals, inverse_inds_dyd_nnz):
-        orig_shape = m.shape
-        m = m.reshape(-1)
-        m[inds_dyds_nnz] = unique_vals[inverse_inds_dyd_nnz]
-        m = m.reshape(orig_shape)
+    # def reconstruct_dyds_nnz(self, m, inds_dyds_nnz, unique_vals, inverse_inds_dyd_nnz):
+    #     orig_shape = m.shape
+    #     m = m.reshape(-1)
+    #     m[inds_dyds_nnz] = unique_vals[inverse_inds_dyd_nnz]
+    #     m = m.reshape(orig_shape)
 
-    def make_matr_for_fb_1_2_nnnn(self, sources):
-        xed = sources["sources_list"][0].xed
-        yed = sources["sources_list"][0].yed
-        xis, xjs, xj1s, yws, yds, zws, zds = self.raw
-        yd1_w = yed - np.abs(yds-yws)
-        yd2_w = yed - (yds+yws)
-        arg_x_0 = xj1s - xjs
-        arg_x_1 = np.pi*xis/xed
-        arg_x_2 = np.pi/2./xed*arg_x_0
-        arg_x_3 = np.pi/2./xed*(2*xis - (xjs + xj1s))
-        arg_y_1 = yds+yws
-        arg_y_2 = yed+yd1_w
-        arg_y_3 = yed+yd2_w
-        arg_y_4 = np.abs(yds-yws)
-        self.m_cache["fb_1_2_nnnn"] = (arg_x_0, arg_x_1, arg_x_2, arg_x_3, arg_y_1, arg_y_2, arg_y_3, arg_y_4)
+    # def make_matr_for_fb_1_2_nnnn(self, sources):
+    #     xed = sources["sources_list"][0].xed
+    #     yed = sources["sources_list"][0].yed
+    #     xis, xjs, xj1s, yws, yds, zws, zds = self.raw
+    #     yd1_w = yed - np.abs(yds-yws)
+    #     yd2_w = yed - (yds+yws)
+    #     arg_x_0 = xj1s - xjs
+    #     arg_x_1 = np.pi*xis/xed
+    #     arg_x_2 = np.pi/2./xed*arg_x_0
+    #     arg_x_3 = np.pi/2./xed*(2*xis - (xjs + xj1s))
+    #     arg_y_1 = yds+yws
+    #     arg_y_2 = yed+yd1_w
+    #     arg_y_3 = yed+yd2_w
+    #     arg_y_4 = np.abs(yds-yws)
+    #     self.m_cache["fb_1_2_nnnn"] = (arg_x_0, arg_x_1, arg_x_2, arg_x_3, arg_y_1, arg_y_2, arg_y_3, arg_y_4)
+
+
 

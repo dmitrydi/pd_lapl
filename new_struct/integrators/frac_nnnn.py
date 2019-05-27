@@ -1,18 +1,21 @@
 import numpy as np
-from .common import i_frac_0, i_frac_nnz
+from .common import i_frac_0, i_frac_nnz, make_calc_matr_
+
 
 def integrate_matrix(u, matrixizer, sources):
     xed = sources["sources_list"][0].xed
     yed = sources["sources_list"][0].yed
-    if "fb_1_2_nnnn" not in matrixizer.m_cache.keys():
-        matrixizer.make_matr_for_fb_1_2_nnnn(sources)
-    arg_x_0, arg_x_1, arg_x_2, arg_x_3, arg_y_1, arg_y_2, arg_y_3, arg_y_4 = matrixizer.m_cache["fb_1_2_nnnn"]
-    # (x1js - xjs), np.pi*xis/xed, np.pi/2./xed*arg_x_0, np.pi/2./xed*(2*xis - (xjs + xj1s)), yds+yws, yed+yd1_w, yed+yd2_w, np.abs(yds-ywd)
+    xis_, xjs_, xj1s_, yws_, yds_, zws_, zds_ = matrixizer.raw
+    m = integrate_matrix_(u, matrixizer.m_cache, matrixizer.m_cache, xed, yed, xis_, xjs_, xj1s_, yws_, yds_, zws_, zds_, xd_id='')
+    return m
+
+def integrate_matrix_(u, buf_k, buf_fb_1_2, xed, yed, xis_, xjs_, xj1s_, yws_, yds_, zws_, zds_, xd_id=''):
+    if "fb_1_2_nnnn"+xd_id not in buf_fb_1_2.keys():
+        make_matr_for_fb_1_2_nnnn_(buf_fb_1_2, xed, yed, xis_, xjs_, xj1s_, yws_, yds_, zws_, zds_, xd_id)
+    arg_x_0, arg_x_1, arg_x_2, arg_x_3, arg_y_1, arg_y_2, arg_y_3, arg_y_4 = buf_fb_1_2["fb_1_2_nnnn"+xd_id]
     i1 = ifb1(u, arg_x_0, arg_y_1, arg_y_2, arg_y_3, arg_y_4, xed, yed)
-    i3 = ifb3(u, matrixizer, sources, arg_x_0, arg_y_4, xed)
-    dlm = np.min([np.linalg.norm(i1), np.linalg.norm(i3)])
-    i2 = ifb2(u, arg_x_1, arg_x_2, arg_x_3, arg_y_1, arg_y_2, arg_y_3, arg_y_4, xed, yed, dlm = dlm)
-    
+    i2 = ifb2(u, arg_x_1, arg_x_2, arg_x_3, arg_y_1, arg_y_2, arg_y_3, arg_y_4, xed, yed)
+    i3 = ifb3_(buf_k, u, xed, yed, xis_, xjs_, xj1s_, yws_, yds_, zws_, zds_, arg_x_0, arg_y_4)
     return i1 + i2 + i3
 
 def ifb1(u, arg_x_0, arg_y_1, arg_y_2, arg_y_3, arg_y_4, xed, yed):
@@ -53,20 +56,22 @@ def ifb2_k(k, u, arg_x_1, arg_x_2, arg_x_3, arg_y_1, arg_y_2, arg_y_3, arg_y_4, 
     p1 *= (np.exp(-ek*arg_y_1) + np.exp(-ek*arg_y_2) + np.exp(-ek*arg_y_3))*(1 + sexp) + np.exp(-ek*arg_y_4)*sexp # arg_y_1, arg_y_2, arg_y3, arg_y_4
     return p1
 
-def ifb3(u, matrixizer, sources, arg_x_0, arg_y_4, xed):
-    return ifb3_1(u, matrixizer, sources) + ifb3_2(u, arg_x_0, arg_y_4, xed)
+def ifb3_(buf, u, xed, yed, xis_, xjs_, xj1s_, yws_, yds_, zws_, zds_, arg_x_0, arg_y_4):
+    a = ifb3_1_(buf, u, xed, yed, xis_, xjs_, xj1s_, yws_, yds_, zws_, zds_)
+    b = ifb3_2(u, arg_x_0, arg_y_4, xed)
+    return a + b
 
-def ifb3_1(u, matrixizer, sources, debug=False):
+def ifb3_1_(buf, u, xed, yed, xis_, xjs_, xj1s_, yws_, yds_, zws_, zds_, debug=False):
     KMAX = 100
     EPS = 1e-12
     TINY = 1e-20
-    sum_ = ifb3_k(u, 0, "-", matrixizer, sources)
-    sum_ += ifb3_k(u, 0, "+", matrixizer, sources)
+    sum_ = ifb3_k_(buf, u, 0, "-", xed, yed, xis_, xjs_, xj1s_, yws_, yds_, zws_, zds_)
+    sum_ += ifb3_k_(buf, u, 0, "+", xed, yed, xis_, xjs_, xj1s_, yws_, yds_, zws_, zds_)
     for k in range(1, KMAX):
-        d = ifb3_k(u, k, "-", matrixizer, sources)
-        d += ifb3_k(u, k, "+", matrixizer, sources)
-        d += ifb3_k(u, -k, "-", matrixizer, sources)
-        d += ifb3_k(u, -k, "+", matrixizer, sources)
+        d = ifb3_k_(buf, u, k, "-", xed, yed, xis_, xjs_, xj1s_, yws_, yds_, zws_, zds_)
+        d += ifb3_k_(buf, u, k, "+", xed, yed, xis_, xjs_, xj1s_, yws_, yds_, zws_, zds_)
+        d += ifb3_k_(buf, u, -k, "-", xed, yed, xis_, xjs_, xj1s_, yws_, yds_, zws_, zds_)
+        d += ifb3_k_(buf, u, -k, "+", xed, yed, xis_, xjs_, xj1s_, yws_, yds_, zws_, zds_)
         sum_ += d
         if np.linalg.norm(d)/(np.linalg.norm(sum_) + TINY) < EPS:
             if debug:
@@ -75,28 +80,46 @@ def ifb3_1(u, matrixizer, sources, debug=False):
                 return sum_
     raise RuntimeWarning("ifb3_1 did not converge in {} steps".format(KMAX))
 
-def ifb3_k(u, k, sign, matrixizer, sources):
-    N = sources["sources_list"][0].nseg
-    M = len(sources["sources_list"])
-    orig_shape = (2*N*M, 2*N*M)
+def ifb3_k_(buf, u, k, sign, xed, yed, xis_, xjs_, xj1s_, yws_, yds_, zws_, zds_):
+    orig_shape = xis_.shape
     m = np.zeros(orig_shape, dtype=np.float)
-    if str(k)+sign not in matrixizer.m_cache["dyds_0"].keys():
-        matrixizer.make_calc_matr(sources, sign, k)
-    inds_dyds_0, unique_lims_dyd_0, inverse_inds_dyd_0, len_alims1, mask1, mask2 = matrixizer.m_cache["dyds_0"][str(k)+sign]
-    inds_dyds_nnz, unique_lims_dyd_nnz, inverse_inds_dyd_nnz = matrixizer.m_cache["dyds_nnz"][str(k)+sign]
+    if str(k)+sign not in buf["dyds_0"].keys():
+        make_calc_matr_(buf, xed, yed, sign, k, xis_, xjs_, xj1s_, yws_, yds_, zws_, zds_)
+    inds_dyds_0, unique_lims_dyd_0, inverse_inds_dyd_0, len_alims1, mask1, mask2 = buf["dyds_0"][str(k)+sign]
+    inds_dyds_nnz, unique_lims_dyd_nnz, inverse_inds_dyd_nnz = buf["dyds_nnz"][str(k)+sign]
     su = np.sqrt(u)
     if inds_dyds_0 is not None:
         vals_dyds_0 = i_frac_0(unique_lims_dyd_0, su)
-        matrixizer.reconstruct_dyds_0(m, inds_dyds_0, vals_dyds_0, inverse_inds_dyd_0, len_alims1, mask1, mask2)
+        m = m.reshape(-1)
+        v = vals_dyds_0[inverse_inds_dyd_0]
+        v1 = v[:len_alims1]
+        v2 = v[len_alims1:]
+        m[inds_dyds_0] = v1*mask1 + v2*mask2
+        m = m.reshape(orig_shape)
     if inds_dyds_nnz is not None:
         f = lambda t: i_frac_nnz(t, su)
         vals_dyds_nnz = np.apply_along_axis(f, 1, unique_lims_dyd_nnz)
-        matrixizer.reconstruct_dyds_nnz(m, inds_dyds_nnz, vals_dyds_nnz, inverse_inds_dyd_nnz)
+        m = m.reshape(-1)
+        m[inds_dyds_nnz] = vals_dyds_nnz[inverse_inds_dyd_nnz]
+        m = m.reshape(orig_shape)
     return m
 
 def ifb3_2(u, arg_x_0, arg_y_4, xed):
     su = u**0.5
     return -0.5*np.pi/xed/su*arg_x_0*np.exp(-su*arg_y_4)
+
+def make_matr_for_fb_1_2_nnnn_(buf, xed, yed, xis, xjs, xj1s, yws, yds, zws, zds, xd_id=''):
+    yd1_w = yed - np.abs(yds-yws)
+    yd2_w = yed - (yds+yws)
+    arg_x_0 = xj1s - xjs
+    arg_x_1 = np.pi*xis/xed
+    arg_x_2 = np.pi/2./xed*arg_x_0
+    arg_x_3 = np.pi/2./xed*(2*xis - (xjs + xj1s))
+    arg_y_1 = yds+yws
+    arg_y_2 = yed+yd1_w
+    arg_y_3 = yed+yd2_w
+    arg_y_4 = np.abs(yds-yws)
+    buf["fb_1_2_nnnn"+xd_id] = (arg_x_0, arg_x_1, arg_x_2, arg_x_3, arg_y_1, arg_y_2, arg_y_3, arg_y_4)
 
 def calc_sexp(ek, yed):
     ek_ = ek*yed
