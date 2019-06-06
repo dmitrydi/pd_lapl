@@ -47,6 +47,14 @@ def ifb2(u, arg_x_1, arg_x_2, arg_x_3, arg_y_1, arg_y_2, arg_y_3, arg_y_4, xed, 
 def ifb2_k(k, u, arg_x_1, arg_x_2, arg_x_3, arg_y_1, arg_y_2, arg_y_3, arg_y_4, xed, yed):
     ek = (u + k*k*np.pi*np.pi/xed/xed)**0.5
     sexp = calc_sexp(ek, yed)
+#     arg_x_0 = xj1s - xjs
+#     arg_x_1 = np.pi*xis/xed
+#     arg_x_2 = np.pi/2./xed*arg_x_0
+#     arg_x_3 = np.pi/2./xed*(2*xis - (xjs + xj1s))
+#     arg_y_1 = yds+yws
+#     arg_y_2 = yed+yd1_w
+#     arg_y_3 = yed+yd2_w
+#     arg_y_4 = np.abs(yds-yws)
     p1 = 2./k/ek*np.cos(k*arg_x_1) # arg_x_1
     p1 *= np.sin(k*arg_x_2) # arg_x_2
     p1 *= np.cos(k*arg_x_3) # arg_x_3
@@ -105,7 +113,7 @@ def calc_sexp(ek, yed):
     TINY = 1e-20
     EPS = 1e-12
     sum_ = 0.
-    for i in range(1, MAXITER):
+    for i in range(0, MAXITER):
         blk = np.arange(1+i*blk_size, 1+(i+1)*blk_size)
         d = np.sum(np.exp(-2*blk*ek_))
         sum_ += d
