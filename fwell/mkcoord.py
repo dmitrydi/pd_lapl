@@ -32,8 +32,8 @@ def make_dummy_matr_(N, M):
     return m
 
 def make_source_matr_(N,M,Fcd,wtype):
-    m = np.zeros((1+2*N*M, 1+2*N*M))
-    m_ = np.zeros((N,N))
+    m = np.zeros((1+2*N*M, 1+2*N*M), dtype=np.float)
+    m_ = np.zeros((N,N), dtype=np.float)
     dx = 1./N
     dx2_8 = 0.125*dx**2
     dx2_2 = 0.5*dx**2
@@ -51,9 +51,9 @@ def make_source_matr_(N,M,Fcd,wtype):
         m_ = block_diag(*dum_list)
         m[:-1, 1:] = m_
         m *= coef
-    else:
-        raise NotImplementedError
-    return m
+        return m
+    elif wtype == "hor":
+        return m
 
 def make_dummy_rhv_(N,M,Fcd,wtype):
     b_ = np.zeros((2*N))
@@ -68,4 +68,7 @@ def make_dummy_rhv_(N,M,Fcd,wtype):
         for _ in range(M):
             rhv = np.append(rhv, b_)
         rhv = np.append(rhv, 2./dx)
+    elif wtype == "hor":
+        rhv = np.zeros(2*N*M+1, dtype=np.float)
+        rhv[-1] = 2./dx
     return rhv
