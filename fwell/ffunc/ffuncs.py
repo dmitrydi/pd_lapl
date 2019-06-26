@@ -166,23 +166,23 @@ def i1F2Hk_(k, b, x1, x2, u, ksid, ksiwd, ksied, ksiede, a, yd, ywd, buf, fid):
         m2[inds_dyd0] = mask2
     if np.any(inds_dyd_nnz):
         raise NotImplementedError
-        if "ydnnzs_" + fid not in buf.__dict__.keys():
-            setattr(buf, "ydnnzs_" + fid, {})
-        if str(k)+"_"+str(b) not in getattr(buf, "ydnnzs_" + fid).keys():
-            t1 = ksiede/ksied*(ksid[inds_dyd_nnz] + b*ksiwd[inds_dyd_nnz] - 2*k*ksied - x2[inds_dyd_nnz])
-            t2 = ksiede/ksied*(ksid[inds_dyd_nnz] + b*ksiwd[inds_dyd_nnz] - 2*k*ksied - x1[inds_dyd_nnz])
-            dyd = np.round(np.abs(yd-ywd)[inds_dyd_nnz], decimals=NDIGITS).flatten()
-            t1 = np.round(t1, decimals=NDIGITS).flatten()
-            t2 = np.round(t2, decimals=NDIGITS).flatten()
-            t = np.vstack([t1,t2]).T
-            t = np.sort(t, axis=1)
-            t = np.hstack([t,dyd[np.newaxis].T])
-            ut, inv_t = np.unique(t, axis=0, return_inverse=True)
-            getattr(buf, "ydnnzs_" + fid)[str(k)+"_"+str(b)] = (ut, inv_t)
-        else:
-            (ut, inv_t) = getattr(buf, "ydnnzs_" + fid)[str(k)+"_"+str(b)]
-        uv = ksied/ksiede*qgaus(m_bessk0, ut[:,0], ut[:,1], (ut[:,2],su))
-        m[inds_dyd_nnz] = uv[inv_t]
+#         if "ydnnzs_" + fid not in buf.__dict__.keys():
+#             setattr(buf, "ydnnzs_" + fid, {})
+#         if str(k)+"_"+str(b) not in getattr(buf, "ydnnzs_" + fid).keys():
+#             t1 = ksiede/ksied*(ksid[inds_dyd_nnz] + b*ksiwd[inds_dyd_nnz] - 2*k*ksied - x2[inds_dyd_nnz])
+#             t2 = ksiede/ksied*(ksid[inds_dyd_nnz] + b*ksiwd[inds_dyd_nnz] - 2*k*ksied - x1[inds_dyd_nnz])
+#             dyd = np.round(np.abs(yd-ywd)[inds_dyd_nnz], decimals=NDIGITS).flatten()
+#             t1 = np.round(t1, decimals=NDIGITS).flatten()
+#             t2 = np.round(t2, decimals=NDIGITS).flatten()
+#             t = np.vstack([t1,t2]).T
+#             t = np.sort(t, axis=1)
+#             t = np.hstack([t,dyd[np.newaxis].T])
+#             ut, inv_t = np.unique(t, axis=0, return_inverse=True)
+#             getattr(buf, "ydnnzs_" + fid)[str(k)+"_"+str(b)] = (ut, inv_t)
+#         else:
+#             (ut, inv_t) = getattr(buf, "ydnnzs_" + fid)[str(k)+"_"+str(b)]
+#         uv = ksied/ksiede*qgaus(m_bessk0, ut[:,0], ut[:,1], (ut[:,2],su))
+#         m[inds_dyd_nnz] = uv[inv_t]
     return v_1*m1, v_2*m2, -0.5*np.pi*ksied/ksiede*(m1+m2)
 
 def i1F2Hk(k, b, x1, x2, u, ksid, ksiwd, ksied, ksiede, a, yd, ywd, buf, fid):
@@ -290,7 +290,9 @@ def ih1F2H(zd, zwd, x1, x2, u, ksid, ksiwd, ksied, ksiede, hd, yd, ywd, buf, fid
         if (np.linalg.norm(d1) < EPS*ns1 or ns1 < TINY) and (np.linalg.norm(d2) < EPS*ns2 or ns2 < TINY):
             sum_ = sum1 +sum2
             dum = 0.5*hd/PI*i1F2H(x1, x2, u, zd, zwd, 1., hd, n*PI/hd, yd, ywd, buf, fid+"aux")+i2F2H(x1,x2,u,0,yd,ywd)
-            dum *= ms
+            # v_1*m1, v_2*m2, -0.5*np.pi*ksied/ksiede*(m1+m2)
+            # i1F2Hk_(k, b, x1, x2, u, ksid, ksiwd, ksied, ksiede, a, yd, ywd, buf, fid)
+            dum *= ms # !!!
             sum_ += dum
             return sum_
     raise RuntimeError
@@ -381,5 +383,3 @@ def F2H1k(k, b, u, ksid, ksiwd, ksied, ksiede, a, yd, ywd):
 
 def F2H2(u, a, yd, ywd):
     return -0.5*np.exp(-np.sqrt(u+a*a)*np.abs(yd-ywd))/np.sqrt(u+a*a)
-
-
