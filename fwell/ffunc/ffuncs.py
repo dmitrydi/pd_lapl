@@ -5,6 +5,7 @@ from scipy.integrate import fixed_quad
 from .cyfunc.cyfuncs import cy_m_bessk0, mcy_m_bessk0
 from .integrate import qgaus
 from time import time
+from .aux import eulsum_v
 
 def sexp(e_, yed):
     TINY = 1e-20
@@ -319,6 +320,7 @@ def F2(buf, u, ksid, ksiwd, ksied, ksiede, a, yd, ywd, yed, fid):
     return F2E(buf, u, ksid, ksiwd, ksied, ksiede, a, yd, ywd, yed, fid) + F2H(u, ksid, ksiwd, ksied, ksiede, a, yd, ywd)
 
 def F2E(buf, u, ksid, ksiwd, ksied, ksiede, a, yd, ywd, yed, fid):
+    # check!
     EPS = 1e-12
     blk_size = 10
     MAXITER = 100
@@ -333,6 +335,7 @@ def F2E(buf, u, ksid, ksiwd, ksied, ksiede, a, yd, ywd, yed, fid):
         sum_ += d
         if np.linalg.norm(d) < EPS*(np.linalg.norm(sum_)+TINY):
             return sum_
+    raise RuntimeError("F2E did not converge for u = {}".format(u))
             
 def F2E_k(k, buf, u, ksid, ksiwd, ksied, ksiede, a, yd, ywd, yed, fid):
     if "F2E_k"+ fid not in buf.__dict__.keys():
@@ -355,7 +358,7 @@ def F2E_k(k, buf, u, ksid, ksiwd, ksied, ksiede, a, yd, ywd, yed, fid):
 def F2H(u, ksid, ksiwd, ksied, ksiede, a, yd, ywd):
     return ksiede/2/np.pi*F2H1(u, ksid, ksiwd, ksied, ksiede, a, yd, ywd) + F2H2(u, a, yd, ywd)
 
-def F2H1(u, ksid, ksiwd, ksied, ksiede, a, yd, ywd):
+def F2H1_old(u, ksid, ksiwd, ksied, ksiede, a, yd, ywd):
     TINY = 1e-20
     sum_ = F2H1k(0, 1, u, ksid, ksiwd, ksied, ksiede, a, yd, ywd)
     sum_ += F2H1k(0, -1, u, ksid, ksiwd, ksied, ksiede, a, yd, ywd)
@@ -374,7 +377,17 @@ def F2H1(u, ksid, ksiwd, ksied, ksiede, a, yd, ywd):
         nrm = np.linalg.norm(sum_)
         if np.linalg.norm(d) < EPS*nrm or nrm < TINY:
             return sum_
-    raise RuntimeError
+    raise RuntimeError("F2H1 did not converge for u = {}".format(u))
+    
+def F2H1(u, ksid, ksiwd, ksied, ksiede, a, yd, ywd):
+    val = np.zeros_like(ksid)
+    for sx in [-1,1]:
+        val += k0(np.sqrt((u+a*a)*(np.square(ksiede/ksied*(ksid+sx*ksiwd))+np.square(yd-ywd))))
+    for sx in [-1,1]:
+        for sk in [-1,1]:
+            vfunc = lambda k: k0(np.sqrt((u+a*a)*(np.square(ksiede/ksied*(ksid+sx*ksiwd+sk*2*k*ksied))+np.square(yd-ywd))))
+            val += eulsum_v(vfunc, ksid.shape)
+    return val
         
 def F2H1k(k, b, u, ksid, ksiwd, ksied, ksiede, a, yd, ywd):
     arg = np.sqrt(u+a*a)

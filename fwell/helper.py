@@ -47,4 +47,3 @@ def make_offset(matr):
     m = np.zeros((1+sh[0], 1+sh[1]))
     m[:-1, 1:] = matr
     return m
-
