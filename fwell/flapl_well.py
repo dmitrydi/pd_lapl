@@ -1,6 +1,5 @@
 import numpy as np
 from .ffunc.frac import matr_pd_frac_nnnn
-from .ffunc.hor import matr_pd_hor_nnnn
 from .helper import make_offset
 from .mkcoord import *
 from .buffer import Buffer
@@ -17,6 +16,7 @@ class FLaplWell():
         self.nwells = nwells
         self.xd, self.xwd, self.yd, self.ywd, self.x1, self.x2 = make_coordinates_(xwds, ywds, self.N, self.nwells)
         if wtype == "hor":
+            raise NotImplementedError
             self.zwd = zwds[0]*np.ones_like(self.xwd)
             self.zd = self.zwd+rwd
             self.hd = hd

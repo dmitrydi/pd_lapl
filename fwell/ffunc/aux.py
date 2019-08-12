@@ -1,5 +1,24 @@
 import numpy as np
 
+def sexp(e_, yed):
+    TINY = 1e-20
+    EPS = 1e-9
+    MAXITER = 10000
+    BLK_SIZE = 100
+    if isinstance(e_, np.ndarray):
+        e = e_.flatten().reshape(-1,1)
+        sum_ = np.zeros_like(e_.flatten())
+    else:
+        e = e_
+        sum_ = 0
+    for i in range(MAXITER):
+        m = np.arange(1+i*BLK_SIZE, 1+(i+1)*BLK_SIZE)
+        d = np.sum(np.exp(-2*m*yed*e), axis=-1)
+        sum_ += d
+        if np.all(d < sum_*EPS) or np.all(sum_<TINY):
+            return sum_
+    return sum_
+
 def eulsum(vfunc, j_0=False):
     # euler's algo for series summation 
     # vfunc - scalar-valued lambda-like function function
@@ -121,7 +140,7 @@ def eulsum_v_(psum, term, jterm, wksp, nterm):
 
 def eulsum_v(vfunc, vfunc_shape, j_0=False):
     # euler's algo for series summation 
-    # vfunc - scalar-valued lambda-like function function
+    # vfunc - vector-valued lambda-like function function
     # param: j_0 - whether to account for 0-th term in sum
     MAXTERM = 1000
     EPS = 1e-9
